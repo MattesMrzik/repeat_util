@@ -62,7 +62,7 @@ if __name__ == "__main__":
         for k in ks:
             for frame in range(k):
                 print("the input sequence is:")
-                print(seq);
+                print(seq)
                 print(f"the found {k}-mer repeats in frame {frame} are:")
                 print(get_repeat(k, seq, frame))
                 print()

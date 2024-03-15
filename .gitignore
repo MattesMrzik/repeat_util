@@ -1,2 +1,4 @@
 .idea/*
 repeat_util.iml
+.vscode/*
+cpp_code/consecutive_kmers/main
