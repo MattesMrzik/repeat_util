@@ -31,9 +31,8 @@ size_t get_repeats(int k,
     size_t n_found = 0;
     size_t max_n_found = 0;
     size_t current_result_len = 0;
+    std::strcpy(result, seq.substr(0, frame).c_str()); // must come before the current_kmer declaration since strcpy does not null-terminate the string
     char current_kmer[k]; // used without new, so its on the stack, and automatically deleted
-
-    std::strcpy(result, seq.substr(0, frame).c_str());
 
     size_t last_position_to_check = l - ((l - frame) % k) - k;
     for (int i = frame; i < last_position_to_check; i += k)
