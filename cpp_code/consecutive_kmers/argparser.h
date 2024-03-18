@@ -9,6 +9,7 @@ struct Args {
     int threshold = 8;               // Default value for t
     std::vector<std::string> files; // Vector to store input files
     size_t max_read_len = 160; // Default value for m
+    std::string score = "max"; // Default value for the score type [max, acc, <kmer>]
 };
 
 void printHelp(const char* programName);
