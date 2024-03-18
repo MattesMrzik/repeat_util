@@ -12,10 +12,6 @@
 
 #include "argparser.h"
 
-constexpr size_t MAX_SIZE = 160;
-constexpr size_t RESULT_LEN = MAX_SIZE * 4 / 3;
-size_t k, threshold;
-
 /// @brief calculates a string that is the input sequence, but repeating k-mers are replaced by (kmer)_n.
 /// @param k the length of the k-mer.
 /// @param seq the input sequence.
@@ -25,15 +21,21 @@ size_t k, threshold;
 size_t get_repeats(int k,
                    const std::string &seq,
                    int frame,
-                   char *result)
+                   char *result,
+                   size_t max_read_len,
+                   bool only_used_prefix = false)
 {
     size_t l = seq.length();
+    if (only_used_prefix)
+    {
+        l = max_read_len;
+    }
     size_t n_found = 0;
     size_t max_n_found = 0;
     size_t current_result_len = 0;
-    std::strcpy(result, seq.substr(0, frame).c_str()); // must come before the current_kmer declaration since strcpy does not null-terminate the string
-    char current_kmer[k]; // used without new, so its on the stack, and automatically deleted
-
+    char current_kmer[k + 1];
+    current_kmer[k] = '\0';
+    std::strcpy(result, seq.substr(0, frame).c_str());
     size_t last_position_to_check = l - ((l - frame) % k) - k;
     for (int i = frame; i < last_position_to_check; i += k)
     {
@@ -92,11 +94,16 @@ size_t get_repeats(int k,
 /// @param seq_name the name of the sequence.
 /// @param seq the sequence.
 /// @param outfile the file to write the results to.
-void interate_over_frames(const std::string &seq_name, const std::string &seq, std::ofstream &outfile)
+void interate_over_frames(const std::string &seq_name,
+                          const std::string &seq,
+                          std::ofstream &outfile,
+                          const size_t max_read_len,
+                          const int k,
+                          const int threshold)
 {
 
     bool only_used_prefix = false;
-    if (seq.length() > MAX_SIZE)
+    if (seq.length() > max_read_len)
     {
         // std::cerr << "The sequence " << seq_name << " is too longer than the specified max_len. "
         //           << "Only using the first max_len bases of the sequence." << std::endl;
@@ -107,12 +114,13 @@ void interate_over_frames(const std::string &seq_name, const std::string &seq, s
         // std::cerr << "The sequence " << seq_name << " is too short to contain a kmer of length " << k << std::endl;
         return;
     }
-    char result[RESULT_LEN];
+
+    size_t result_len = max_read_len * 4 / 3;
+    char result[result_len];
 
     for (int frame = 0; frame < k; ++frame)
     {
-
-        int score = get_repeats(k, seq, frame, result);
+        int score = get_repeats(k, seq, frame, result, max_read_len, only_used_prefix);
         if (score >= threshold)
         {
             outfile << seq_name << ", frame: " << frame << " " << result << ", max repeat l:"
@@ -124,7 +132,11 @@ void interate_over_frames(const std::string &seq_name, const std::string &seq, s
 /// @brief scans a file for sequences and calls interate_over_frames to find repeats for each sequence.
 /// @param file_name the name of the file to scan.
 /// @param outfile the file to write the results to.
-void scan_file(std::string file_name, std::ofstream &outfile)
+void scan_file(std::string file_name,
+               std::ofstream &outfile,
+               const size_t max_read_len,
+               const int k,
+               const int threshold)
 {
     // make the kmers parallel or is this too much overhead for to short seqs?
     std::ifstream file(file_name);
@@ -148,7 +160,7 @@ void scan_file(std::string file_name, std::ofstream &outfile)
         {
             if (!seq.empty())
             {
-                interate_over_frames(seq_name, seq, outfile);
+                interate_over_frames(seq_name, seq, outfile, max_read_len, k, threshold);
                 seq.clear();
             }
             seq_name = line;
@@ -165,15 +177,13 @@ void scan_file(std::string file_name, std::ofstream &outfile)
     }
     if (!seq.empty())
     {
-        interate_over_frames(seq_name, seq, outfile);
+        interate_over_frames(seq_name, seq, outfile, max_read_len, k, threshold);
     }
 }
 
 int main(int argc, char *argv[])
 {
     Args args = parseArgs(argc, argv);
-    k = args.k;
-    threshold = args.threshold;
 
     // #pragma omp parallel for
     for (auto &file_name : args.files)
@@ -184,7 +194,7 @@ int main(int argc, char *argv[])
             std::cerr << "Error: Unable to open output file " << file_name + ".out" << std::endl;
             continue;
         }
-        scan_file(file_name, outfile);
+        scan_file(file_name, outfile, args.max_read_len, args.k, args.threshold);
         outfile.close();
     }
     return 0;

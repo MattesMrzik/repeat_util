@@ -8,6 +8,7 @@ struct Args {
     int k = 3;               // Default value for k
     int threshold = 8;               // Default value for t
     std::vector<std::string> files; // Vector to store input files
+    size_t max_read_len = 160; // Default value for m
 };
 
 void printHelp(const char* programName);
