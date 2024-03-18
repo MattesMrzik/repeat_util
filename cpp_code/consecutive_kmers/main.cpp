@@ -1,136 +1,192 @@
 #include <iostream>
 #include <fstream>
-#include <vector>
 #include <string>
 #include <algorithm>
 #include <omp.h>
+#include <map>
+#include <utility> // for std::make_pair
+#include <chrono>
+#include <thread>
+#include <cstring> // for std::strcpy
+#include <memory>
 
-std::string get_repeat(int k,
-                       const std::string & seq,
-                       int frame)
+#include "argparser.h"
+
+constexpr size_t MAX_SIZE = 160;
+constexpr size_t RESULT_LEN = MAX_SIZE * 4 / 3;
+size_t k, threshold;
+
+/// @brief calculates a string that is the input sequence, but repeating k-mers are replaced by (kmer)_n.
+/// @param k the length of the k-mer.
+/// @param seq the input sequence.
+/// @param frame the frame to start from (0, 1, 2, ... , k-1).
+/// @param result the result string. Must be long enough to hold the result.
+/// @return the score of the sequence, i.e. the maximum number of consecutive k-mers.
+size_t get_repeats(int k,
+                   const std::string &seq,
+                   int frame,
+                   char *result)
 {
-    std::string result = seq.substr(0, frame);
-    int n_found = 0;
-    for (int i = frame; i < seq.length(); i += k)
+    size_t l = seq.length();
+    size_t n_found = 0;
+    size_t max_n_found = 0;
+    size_t current_result_len = 0;
+    char current_kmer[k]; // used without new, so its on the stack, and automatically deleted
+
+    std::strcpy(result, seq.substr(0, frame).c_str());
+
+    size_t last_position_to_check = l - ((l - frame) % k) - k;
+    for (int i = frame; i < last_position_to_check; i += k)
     {
-        std::string current_kmer = seq.substr(i, std::min(k, static_cast<int>(seq.length()) - i));
-        std::string next_kmer;
-        if (i + k < seq.length()) {
-            next_kmer = seq.substr(i + k, std::min(k, static_cast<int>(seq.length()) - i - k));
-        } else {
-            next_kmer = "";
+        bool is_repeat = true;
+        for (size_t j = 0; j < k; j++) // this is me trying to make it lightweight
+        {
+            current_kmer[j] = seq[i + j];
+            if (seq[i + j] != seq[i + k + j])
+            {
+                is_repeat = false;
+            }
         }
-        if (current_kmer == next_kmer)
+
+        if (is_repeat)
         {
             n_found++;
+            if (n_found > max_n_found)
+            {
+                max_n_found = n_found;
+            }
         }
         else
         {
             if (n_found > 0)
             {
-                result += "(" + current_kmer + ")_" + std::to_string(n_found + 1) + " ";
+                std::strcat(result, "(");
+                std::strcat(result, current_kmer);
+                std::strcat(result, ")_");
+                std::strcat(result, std::to_string(n_found + 1).c_str());
+                std::strcat(result, " ");
                 n_found = 0;
             }
             else
             {
-                result += current_kmer;
+                std::strcat(result, current_kmer);
             }
         }
     }
+    size_t rest_start = last_position_to_check;
+    size_t rest_length = l - last_position_to_check;
     if (n_found > 0)
     {
-        result += "(" + seq.substr(seq.length() - k, k) + ")_" + std::to_string(n_found + 1) + " ";
+        std::strcat(result, "(");
+        std::strcat(result, current_kmer);
+        std::strcat(result, ")_");
+        std::strcat(result, std::to_string(n_found + 1).c_str());
+        std::strcat(result, " ");
+        rest_length -= k;
     }
-    return result;
+
+    std::strcat(result, seq.substr(rest_start, rest_length).c_str());
+    return max_n_found + 1;
 }
 
-std::vector<std::string> read_sequences(const std::string &file_name, const std::string &file_format = "fasta")
+/// @brief iterates over the frames of a sequence and writes the result to a file.
+/// @param seq_name the name of the sequence.
+/// @param seq the sequence.
+/// @param outfile the file to write the results to.
+void interate_over_frames(const std::string &seq_name, const std::string &seq, std::ofstream &outfile)
 {
-    std::vector<std::string> seqs;
+
+    bool only_used_prefix = false;
+    if (seq.length() > MAX_SIZE)
+    {
+        // std::cerr << "The sequence " << seq_name << " is too longer than the specified max_len. "
+        //           << "Only using the first max_len bases of the sequence." << std::endl;
+        only_used_prefix = true;
+    }
+    if (seq.length() < k * 2)
+    {
+        // std::cerr << "The sequence " << seq_name << " is too short to contain a kmer of length " << k << std::endl;
+        return;
+    }
+    char result[RESULT_LEN];
+
+    for (int frame = 0; frame < k; ++frame)
+    {
+
+        int score = get_repeats(k, seq, frame, result);
+        if (score >= threshold)
+        {
+            outfile << seq_name << ", frame: " << frame << " " << result << ", max repeat l:"
+                    << score << ", seqlen to long: " << only_used_prefix << std::endl;
+        }
+    }
+}
+
+/// @brief scans a file for sequences and calls interate_over_frames to find repeats for each sequence.
+/// @param file_name the name of the file to scan.
+/// @param outfile the file to write the results to.
+void scan_file(std::string file_name, std::ofstream &outfile)
+{
+    // make the kmers parallel or is this too much overhead for to short seqs?
     std::ifstream file(file_name);
     if (!file.is_open())
     {
         std::cerr << "Error: Unable to open file " << file_name << std::endl;
-        return seqs;
+        return;
     }
 
-    std::string line;
-    std::string seq;
-    bool read_sequence = false;
+    std::string line; // maybe not necessary if seqs are always on one line in the input files
+    std::string seq; // maybe also convert to char array?
+    std::string seq_name;
+
+    bool in_quality = false; // in case it is a fastq file
 
     while (std::getline(file, line))
     {
         if (line.empty())
             continue;
-        if (line[0] == '>')
+        if (line[0] == '>' || line[0] == '@')
         {
             if (!seq.empty())
             {
-                seqs.push_back(seq);
+                interate_over_frames(seq_name, seq, outfile);
                 seq.clear();
             }
-            if (file_format == "fastq")
-                std::getline(file, line); // Skip quality line
-            read_sequence = true;
+            seq_name = line;
+            in_quality = false;
         }
-        else if (read_sequence)
+        else if (line[0] == '+')
+        {
+            in_quality = true;
+        }
+        else if (!in_quality)
         {
             seq += line;
         }
     }
     if (!seq.empty())
     {
-        seqs.push_back(seq);
+        interate_over_frames(seq_name, seq, outfile);
     }
-    return seqs;
 }
 
 int main(int argc, char *argv[])
 {
-    if (argc < 2)
-    {
-        std::cerr << "Usage: " << argv[0] << " <file(s)>" << std::endl;
-        return 1;
-    }
+    Args args = parseArgs(argc, argv);
+    k = args.k;
+    threshold = args.threshold;
 
     // #pragma omp parallel for
-    for (int i = 1; i < argc; ++i)
+    for (auto &file_name : args.files)
     {
-        std::string file_name(argv[i]);
-        std::vector<std::string> seqs;
-
-        if (file_name.substr(file_name.find_last_of(".") + 1) == "fasta")
+        std::ofstream outfile(file_name + ".out");
+        if (!outfile.is_open())
         {
-            seqs = read_sequences(file_name);
-        }
-        else if (file_name.substr(file_name.find_last_of(".") + 1) == "fastq")
-        {
-            seqs = read_sequences(file_name, "fastq");
-        }
-        else
-        {
-            std::cerr << "Error: Unsupported file format" << std::endl;
+            std::cerr << "Error: Unable to open output file " << file_name + ".out" << std::endl;
             continue;
         }
-
-        int k = 3; // default k-mer size
-
-        // #pragma omp parallel for
-        for (size_t j = 0; j < seqs.size(); ++j)
-        {
-            for (int k_val = 3; k_val <= k; ++k_val)
-            {
-                for (int frame = 0; frame < k_val; ++frame)
-                {
-                    std::cout << "File: " << file_name << ", Sequence: " << j << ", k: " << k_val << ", Frame: " << frame << std::endl;
-                    std::cout << "Sequence: " << seqs[j] << std::endl;
-                    std::cout << "Found " << k_val << "-mer repeats in frame " << frame << " are:" << std::endl;
-                    std::cout << get_repeat(k_val, seqs[j], frame) << std::endl
-                              << std::endl;
-                }
-            }
-        }
+        scan_file(file_name, outfile);
+        outfile.close();
     }
-
     return 0;
 }
