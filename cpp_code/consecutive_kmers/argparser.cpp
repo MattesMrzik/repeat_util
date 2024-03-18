@@ -38,7 +38,7 @@ Args parseArgs(int argc, char *argv[])
         }
         else if (arg == "-s" && i + 1 < argc)
         {
-            args.max_read_len = std::atoi(argv[++i]);
+            args.score = argv[++i];
         }
         else if (arg == "-i")
         {

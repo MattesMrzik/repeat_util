@@ -14,6 +14,52 @@
 
 Args args;
 
+
+/// @brief appends the repeat (kmer)_repeatSize to the result an updates the scores.
+/// @param result the result string.
+/// @param current_kmer the current kmer.
+/// @param n_found the number of consecutive repeats found.
+/// @param acc_score the accumulated score.
+/// @param max_acc_score the maximum accumulated score.
+/// @param kmer_score the kmer score.
+/// @param max_kmer_score the maximum kmer score.
+void append_repeat(char *result,
+                   char *current_kmer,
+                   size_t &n_found,
+                   size_t &acc_score,
+                   size_t &max_acc_score,
+                   size_t &kmer_score,
+                   size_t &max_kmer_score)
+{
+    std::strcat(result, "(");
+    std::strcat(result, current_kmer);
+    std::strcat(result, ")_");
+    std::strcat(result, std::to_string(n_found + 1).c_str());
+    std::strcat(result, " ");
+    // dont forget to decrease if no repeat was found in get_repeats()
+    acc_score += n_found + 1;
+    if (acc_score > max_acc_score)
+    {
+        max_acc_score = acc_score;
+    }
+    if (current_kmer == args.score)
+    {
+        kmer_score += n_found + 1;
+        if (kmer_score > max_kmer_score)
+        {
+            max_kmer_score = kmer_score;
+        }
+    }
+    else
+    {
+        if (kmer_score > n_found + 1)
+        {
+            kmer_score -= n_found + 1;
+        }
+    }
+    n_found = 0;
+}
+
 /// @brief calculates a string that is the input sequence, but repeating k-mers are replaced by (kmer)_n.
 /// @param seq the input sequence.
 /// @param frame the frame to start from (0, 1, 2, ... , k-1).
@@ -34,6 +80,8 @@ size_t get_repeats(const std::string &seq,
     size_t max_n_found = 0;
     size_t acc_score = 0;
     size_t max_acc_score = 0;
+    size_t kmer_score = 0;
+    size_t max_kmer_score = 0;
     size_t current_result_len = 0;
     char current_kmer[k + 1];
     current_kmer[k] = '\0';
@@ -62,17 +110,7 @@ size_t get_repeats(const std::string &seq,
         {
             if (n_found > 0)
             {
-                std::strcat(result, "(");
-                std::strcat(result, current_kmer);
-                std::strcat(result, ")_");
-                std::strcat(result, std::to_string(n_found + 1).c_str());
-                std::strcat(result, " ");
-                acc_score += (n_found + 1);
-                if (acc_score > max_acc_score)
-                {
-                    max_acc_score = acc_score;
-                }
-                n_found = 0;
+                append_repeat(result, current_kmer, n_found, acc_score, max_acc_score, kmer_score, max_kmer_score);
             }
             else
             {
@@ -81,6 +119,10 @@ size_t get_repeats(const std::string &seq,
                 {
                     acc_score -= 1;
                 }
+                if (kmer_score > 0)
+                {
+                    kmer_score -= 1;
+                }
             }
         }
     }
@@ -88,23 +130,21 @@ size_t get_repeats(const std::string &seq,
     size_t rest_length = l - last_position_to_check;
     if (n_found > 0)
     {
-        std::strcat(result, "(");
-        std::strcat(result, current_kmer);
-        std::strcat(result, ")_");
-        std::strcat(result, std::to_string(n_found + 1).c_str());
-        std::strcat(result, " ");
+        append_repeat(result, current_kmer, n_found, acc_score, max_acc_score, kmer_score, max_kmer_score);
         rest_length -= k;
-        acc_score += n_found + 1;
-        if (acc_score > max_acc_score)
-        {
-            max_acc_score = acc_score;
-        }
     }
 
     std::strcat(result, seq.substr(rest_start, rest_length).c_str());
 
-    size_t return_score = max_acc_score;
-    return return_score;
+    if (args.score == "acc")
+    {
+        return max_acc_score;
+    }
+    else if (args.score == "max")
+    {
+        return n_found + 1;
+    }
+    return max_kmer_score;
 }
 
 /// @brief iterates over the frames of a sequence and writes the result to a file.
@@ -137,7 +177,7 @@ void interate_over_frames(const std::string &seq_name,
         int score = get_repeats(seq, frame, result, only_used_prefix);
         if (score >= args.threshold)
         {
-            outfile << seq_name << ", frame: " << frame << " " << result << ", max repeat l:"
+            outfile << seq_name << ", frame: " << frame << " " << result << ", score " << args.score << ": "
                     << score << ", seqlen to long: " << only_used_prefix << std::endl;
         }
     }
