@@ -177,8 +177,8 @@ void interate_over_frames(const std::string &seq_name,
         int score = get_repeats(seq, frame, result, only_used_prefix);
         if (score >= args.threshold)
         {
-            outfile << seq_name << ", frame: " << frame << " " << result << ", score " << args.score << ": "
-                    << score << ", seqlen to long: " << only_used_prefix << std::endl;
+            outfile << seq_name << ", frame: " << frame << ", " << result << ", score " << args.score << ": "
+                    << score << ", seqlen too long: " << only_used_prefix << std::endl;
         }
     }
 }
