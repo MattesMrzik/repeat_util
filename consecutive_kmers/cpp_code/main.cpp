@@ -14,7 +14,6 @@
 
 Args args;
 
-
 /// @brief appends the repeat (kmer)_repeatSize to the result an updates the scores.
 /// @param result the result string.
 /// @param current_kmer the current kmer.
@@ -177,8 +176,12 @@ void interate_over_frames(const std::string &seq_name,
         int score = get_repeats(seq, frame, result, only_used_prefix);
         if (score >= args.threshold)
         {
-            outfile << seq_name << ", frame: " << frame << ", " << result << ", score " << args.score << ": "
-                    << score << ", seqlen too long: " << only_used_prefix << std::endl;
+            outfile << seq_name
+                    << ", frame: " << frame
+                    << ", " << result
+                    << ", score_type: " << args.score
+                    << ", score: " << score
+                    << ", seqlen too long: " << only_used_prefix << std::endl;
         }
     }
 }
