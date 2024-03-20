@@ -8,6 +8,7 @@ void printHelp(const char *programName)
     std::cout << "Usage: " << programName << " [-k <kmer_size>] [-t <threshold>] [-m <max_read_len>]" << std::endl;
     std::cout << "           [-s <score_type>] [-i <file1> <file2> ...] [-o <output_dir>]" << std::endl;
     std::cout << "Options:" << std::endl;
+    std::cout << "  -h:                      To print this help" << std::endl;
     std::cout << "  -k <kmer_size>:          Set kmer size (default: 3)" << std::endl;
     std::cout << "  -t <threshold>:          Set threshold (default: 15)" << std::endl;
     std::cout << "  -m <max_read_len>:       Set the maximal read length (default: 160)" << std::endl;
@@ -47,6 +48,11 @@ Args parseArgs(int argc, char *argv[])
         else if (arg == "-o" && i + 1 < argc)
         {
             args.output_dir = argv[++i];
+        }
+        else if (arg == "-h")
+        {
+            printHelp(argv[0]);
+            std::exit(0);
         }
         else if (arg == "-i")
         {
