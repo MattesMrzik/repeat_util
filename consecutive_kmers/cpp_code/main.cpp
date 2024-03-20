@@ -9,6 +9,9 @@
 #include <thread>
 #include <cstring> // for std::strcpy
 #include <memory>
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 #include "argparser.h"
 
@@ -186,15 +189,30 @@ void interate_over_frames(const std::string &seq_name,
     }
 }
 
+/// @brief for /path/to/inputfile get /path/to/output_dir/inputfile.out
+/// @param inputPath the path to the input file.
+/// @return the path to the output file.
+std::string getOutputFileName(const std::string &inputPath)
+{
+    fs::path inputFilePath(inputPath);
+    std::string filename = inputFilePath.filename().string();
+    fs::path outputPath(args.output_dir);
+    outputPath /= filename + ".out";
+    return outputPath.string();
+}
+
 /// @brief scans a file for sequences and calls interate_over_frames to find repeats for each sequence.
 /// @param file_name the name of the file to scan.
 /// @param outfile the file to write the results to.
 void scan_file(std::string file_name)
 {
-    std::ofstream outfile(file_name + ".out");
+    std::string output_file_name = getOutputFileName(file_name);
+    fs::create_directories(args.output_dir);
+    std::ofstream outfile(output_file_name);
+
     if (!outfile.is_open())
     {
-        std::cerr << "Error: Unable to open output file " << file_name + ".out" << std::endl;
+        std::cerr << "Error: Unable to open output file " << output_file_name + ".out" << std::endl;
         return;
     }
     // make the kmers parallel or is this too much overhead for to short seqs?

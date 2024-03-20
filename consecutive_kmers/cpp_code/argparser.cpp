@@ -5,16 +5,20 @@
 
 void printHelp(const char *programName)
 {
-    std::cout << "Usage: " << programName << " [-k <kmer_size>] [-t <threshold>] [-i <file1> <file2> ...]" << std::endl;
+    std::cout << "Usage: " << programName << " [-k <kmer_size>] [-t <threshold>] [-m <max_read_len>]" << std::endl;
+    std::cout << "           [-s <score_type>] [-i <file1> <file2> ...] [-o <output_dir>]" << std::endl;
     std::cout << "Options:" << std::endl;
-    std::cout << "  -k <kmer_size>: Set kmer size (default: 3)" << std::endl;
-    std::cout << "  -t <threshold>: Set threshold (default: 8)" << std::endl;
-    std::cout << "  -m <max_read_len>: Set the maximal read length (default: 160)" << std::endl;
-    std::cout << "  -s <score_type>: Set the score type [[max], acc, <kmer>]." << std::endl;
-    std::cout << "                   max:    the largest repeat sets the score" << std::endl;
-    std::cout << "                   acc:    repeats add to the score, interruptions decrease the score" << std::endl;
-    std::cout << "                   <kmer>: only use repeats of this kmer to score" << std::endl;
-    std::cout << "  -i <file1> <file2> ...: Input files" << std::endl;
+    std::cout << "  -k <kmer_size>:          Set kmer size (default: 3)" << std::endl;
+    std::cout << "  -t <threshold>:          Set threshold (default: 15)" << std::endl;
+    std::cout << "  -m <max_read_len>:       Set the maximal read length (default: 160)" << std::endl;
+    std::cout << "  -s <score_type>:         Set the score type [[max], acc, <kmer>]." << std::endl;
+    std::cout << "                               max:    the largest repeat defines the score" << std::endl;
+    std::cout << "                               acc:    repeats add to the score, interruptions" << std::endl;
+    std::cout << "                                       decrease the score" << std::endl;
+    std::cout << "                               <kmer>: repeats of this kmer add to the score," << std::endl;
+    std::cout << "                                       interruptions and other kmers decrease the score" << std::endl;
+    std::cout << "  -i <file1> <file2> ...:  Input files" << std::endl;
+    std::cout << "  -o <output_dir>:         Output directory (default: ../out)" << std::endl;
 }
 
 Args parseArgs(int argc, char *argv[])

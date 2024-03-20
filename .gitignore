@@ -1,5 +1,5 @@
 .idea/*
 repeat_util.iml
 .vscode/*
-example_data/**.out
+consecutive_kmers/out
 consecutive_kmers/cpp_code/main
