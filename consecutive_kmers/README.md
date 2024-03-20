@@ -10,7 +10,7 @@ It contains:
 ### cpp_code
 compile with
 ```bash
-    g++ main.cpp argparser.cpp -o main
+    g++ -std=gnu++17 main.cpp argparser.cpp -o main
 ```
 
 
