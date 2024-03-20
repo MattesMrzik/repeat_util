@@ -44,6 +44,10 @@ Args parseArgs(int argc, char *argv[])
         {
             args.score = argv[++i];
         }
+        else if (arg == "-o" && i + 1 < argc)
+        {
+            args.output_dir = argv[++i];
+        }
         else if (arg == "-i")
         {
             while (i + 1 < argc && argv[i + 1][0] != '-')
