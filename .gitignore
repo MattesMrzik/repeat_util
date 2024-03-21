@@ -3,3 +3,4 @@ repeat_util.iml
 .vscode/*
 consecutive_kmers/out
 consecutive_kmers/cpp_code/main
+consecutive_kmers/eval/__pycache__/*
