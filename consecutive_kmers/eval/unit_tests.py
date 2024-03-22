@@ -47,7 +47,7 @@ class Test_seq_conforms_with_category(unittest.TestCase):
     categories = [["(CAG)", "TAG", "(CAG)"],
                   ["(CAG)", "CAA", "(CAG)"],
                   ["(CAG)", "CCG", "(CAG)"],
-                  ["(CAG)", "CATCAGCAT", "(CAG)"]]
+                  ["(CAG)"]]
     max_repeat_len = 3
     min_distance = 6
 
@@ -63,18 +63,23 @@ class Test_seq_conforms_with_category(unittest.TestCase):
                                                                     Test_seq_conforms_with_category.min_distance,
                                                                     neighbour)))
 
-        self.assertListEqual(f("(CAG)_2 TAG(CAG)_12 "), [1, 0, 0, 0, True])
-        self.assertListEqual(f("(CAG)_2 TAG(CAG)_12 CAA(CAG)_2 "), [1, 1, 0, 0, True])
+        self.assertListEqual(f("(CAG)_2 TAG(CAG)_12 "), [1, 0, 0, 1, True])
+        self.assertListEqual(f("(CAG)_2 TAG(CAG)_12 CAA(CAG)_2 "), [1, 1, 0, 1, True])
         self.assertListEqual(f("(AAA)_2 NNNNNN(AAA)_2 "), [0, 0, 0, 0, True])
         self.assertListEqual(f("(AAA)_4 NNNNNN(AAA)_2 "), [0, 0, 0, 0, False])
-        self.assertListEqual(f("(CAG)_2 TAG(CAG)_12 CAA(CAG)_2 NNNNN(TTT)_3 "), [1, 1, 0, 0, False])
-        self.assertListEqual(f("(CAG)_2 TAG(CAG)_12 CAA(CAG)_2 NNNNNN(TTT)_3 "), [1, 1, 0, 0, True])
-        self.assertListEqual(f("(TTT)_3 NNNNN(CAG)_2 TAG(CAG)_12 CAA(CAG)_2 "), [1, 1, 0, 0, False])
-        self.assertListEqual(f("(TTT)_3 NNNNNN(CAG)_2 TAG(CAG)_12 CAA(CAG)_2 "), [1, 1, 0, 0, True])
-        self.assertListEqual(f("(CAG)_2 TAG(CAG)_12 NNNNNN(AAA)_3 NNNNNN(CAG)_2 CAA(CAG)_2 NNNNNN(TTT)_3 "), [1, 1, 0, 0, True])
-        self.assertListEqual(f("(CAG)_2 TAG(CAG)_12 NNNNNN(AAA)_3 NNNNN(CAG)_2 CAA(CAG)_2 NNNNNN(TTT)_3 "), [1, 1, 0, 0, False])
-        self.assertListEqual(f("(CAG)_2 TAG(CAG)_12 NNNNN(AAA)_3 NNNNNN(CAG)_2 CAA(CAG)_2 NNNNNN(TTT)_3 "), [1, 1, 0, 0, False])
-        self.assertListEqual(f("(CAG)_2 TAG(CAG)_12 NNNNNN(AAA)_4 NNNNNN(CAG)_2 CAA(CAG)_2 NNNNNN(TTT)_3 "), [1, 1, 0, 0, False])
+        self.assertListEqual(f("(CAG)_2 TAG(CAG)_12 CAA(CAG)_2 NNNNN(TTT)_3 "), [1, 1, 0, 1, False])
+        self.assertListEqual(f("(CAG)_2 TAG(CAG)_12 CAA(CAG)_2 NNNNNN(TTT)_3 "), [1, 1, 0, 1, True])
+        self.assertListEqual(f("(TTT)_3 NNNNN(CAG)_2 TAG(CAG)_12 CAA(CAG)_2 "), [1, 1, 0, 1, False])
+        self.assertListEqual(f("(TTT)_3 NNNNNN(CAG)_2 TAG(CAG)_12 CAA(CAG)_2 "), [1, 1, 0, 1, True])
+        self.assertListEqual(f("(CAG)_2 TAG(CAG)_12 NNNNNN(AAA)_3 NNNNNN(CAG)_2 CAA(CAG)_2 NNNNNN(TTT)_3 "), [1, 1, 0, 1, True])
+        self.assertListEqual(f("(CAG)_2 TAG(CAG)_12 NNNNNN(AAA)_3 NNNNN(CAG)_2 CAA(CAG)_2 NNNNNN(TTT)_3 "), [1, 1, 0, 1, False])
+        self.assertListEqual(f("(CAG)_2 TAG(CAG)_12 NNNNN(AAA)_3 NNNNNN(CAG)_2 CAA(CAG)_2 NNNNNN(TTT)_3 "), [1, 1, 0, 1, False])
+        self.assertListEqual(f("(CAG)_2 TAG(CAG)_12 NNNNNN(AAA)_4 NNNNNN(CAG)_2 CAA(CAG)_2 NNNNNN(TTT)_3 "), [1, 1, 0, 1, False])
+        self.assertListEqual(f("(CCA)_2 NNNNNN(CAC)_2 NNNNNN(CAG)_15 NNNNNN(CCT)_3 "), [0, 0, 0, 1, True])
+        self.assertListEqual(f("(CCA)_2 NNNNNN(CAC)_2 NNNNN(CAG)_15 NNNNNN(CCT)_3 "), [0, 0, 0, 1, False])
+        self.assertListEqual(f("(CCA)_2 NNNNNN(CAG)_3 TAG(CAG)_4 NNNNN(CAG)_15 NNNNNN(CCT)_3 "), [1, 0, 0, 1, False])
+        self.assertListEqual(f("(CCA)_2 NNNNNN(CAG)_3 TAG(CAG)_4 NNNNNN(CAG)_15 NNNNNN(CCT)_3 "), [1, 0, 0, 1, True])
+        self.assertListEqual(f("(CCA)_2 NNNNNN(CAG)_3 TAG(CAG)_4 NNNNNN(CAG)_15 NNNNNN(CAG)_6 NNNN"), [1, 0, 0, 1, True])
 
 
 if __name__ == '__main__':

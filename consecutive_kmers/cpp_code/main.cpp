@@ -153,9 +153,9 @@ size_t get_repeats(const std::string &seq,
 /// @param seq_name the name of the sequence.
 /// @param seq the sequence.
 /// @param outfile the file to write the results to.
-void interate_over_frames(const std::string &seq_name,
-                          const std::string &seq,
-                          std::ofstream &outfile)
+void iterate_over_frames(const std::string &seq_name,
+                         const std::string &seq,
+                         std::ofstream &outfile)
 {
 
     bool only_used_prefix = false;
@@ -201,7 +201,7 @@ std::string getOutputFileName(const std::string &inputPath)
     return outputPath.string();
 }
 
-/// @brief scans a file for sequences and calls interate_over_frames to find repeats for each sequence.
+/// @brief scans a file for sequences and calls iterate_over_frames to find repeats for each sequence.
 /// @param file_name the name of the file to scan.
 /// @param outfile the file to write the results to.
 void scan_file(std::string file_name)
@@ -239,11 +239,11 @@ void scan_file(std::string file_name)
             if (!seq.empty())
             {
                 count++;
-                if (count % 10000 == 0)
+                if (count % 1000000 == 0)
                 {
-                    std::cout << "Scanning sequence " << count << " of 32025228, " << count * 1.0f / 32025228 << std::endl;
+                    std::cout << "Scanned " << count/1000000 << " million sequences in file " << file_name << std::endl;
                 }
-                interate_over_frames(seq_name, seq, outfile);
+                iterate_over_frames(seq_name, seq, outfile);
                 seq.clear();
             }
             seq_name = line;
@@ -260,7 +260,7 @@ void scan_file(std::string file_name)
     }
     if (!seq.empty())
     {
-        interate_over_frames(seq_name, seq, outfile);
+        iterate_over_frames(seq_name, seq, outfile);
     }
     outfile.close();
 }

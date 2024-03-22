@@ -2,6 +2,7 @@ import re
 from typing import List, Callable
 from enum import Enum
 import pandas as pd
+import itertools
 
 
 class Seq_has(Enum):
@@ -41,7 +42,7 @@ def seq_conforms_with_category(row,
             positions_with_found_categories[start:end] = [1] * (end - start)
 
     mapped_string = "".join(str(x) for x in positions_with_found_categories)
-    # print(mapped_string)
+    # print("mapped string ", mapped_string)
     matches = [match for match in re.finditer("0+", mapped_string)]
     if len(matches) == 0:
         return pd.Series(found_categories + [True])  # seq is complete categorized
@@ -81,7 +82,7 @@ def is_spurious_by_max_repeat_len_and_min_distance(seq,
             # print("repeat is too long")
             return False
 
-    if (x := re.search("\(\w+\)_\d+\s(\w*)\(", seq)):
+    if (x := re.search("\(\w+\)_\d+\s(\w*)\(", seq)):  # finding to repeats which are close to each other in the not yet categorized string
         if len(x.group(1)) < min_distance:
             # print("repeats are to close")
             return False
@@ -96,10 +97,42 @@ def is_spurious_by_max_repeat_len_and_min_distance(seq,
             if len(x.group(1)) < min_distance:
                 # print("Right neighbour is too close")
                 return False
+
+    if relation_to_neighbour == Seq_has.BOTH_NEIGHBOURS:
+        if len(seq) < min_distance:
+            # print("seq is too short")
+            return False
     return True
 
 
-class color_pd:
+class Color_print_triplets:
+
+    background_colors = [40, 41, 42, 43, 44, 45, 46, 47]
+    font_colors = [30, 31, 32, 33, 34, 35, 36, 37]
+
+    def __init__(self):
+        color_combinations = set(itertools.product(self.background_colors, self.font_colors))
+        self.colors_for_triplets = {"GAC": (41, 30),
+                                    "TAG": (42, 30)}
+        for triplet, color_combination in self.colors_for_triplets.items():
+            color_combinations.remove(color_combination)
+        for triplet in itertools.product("ACGT", repeat=3):
+            triplet = "".join(triplet)
+            if triplet not in self.colors_for_triplets.keys():
+                self.colors_for_triplets[triplet] = color_combinations.pop()
+
+    def color_triplets(self, seq, expand=False):
+        pattern = r'\(([A-Z]+)\)_(\d+)\s'
+
+        def repl(m):
+            triplet = m.group(1)
+            new_repeat = m.group(1) if not expand else triplet * int(m.group(2))
+            colorized_triplet = f"\033[1;{self.colors_for_triplets[triplet][1]};{self.colors_for_triplets[triplet][0]}m{new_repeat}\033[0m"
+            return colorized_triplet
+        return re.sub(pattern, repl, seq)
+
+
+class Color_pd:
     # this is currently not used
     def color_negative_red(val):
         if val < 1:

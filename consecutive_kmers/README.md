@@ -13,5 +13,9 @@ compile with
     g++ -std=gnu++17 main.cpp argparser.cpp -o main
 ```
 
+### Open questions
+- What about `(CAC)_2 CAGCAACAGCAA(CAG)_15 `? Do we also want to recognize the `(CAGCAA)_2` in the middle?
+- Use different a score. Perhaps `CAG`-score together with `acc`.
+- Do we want to consider interruptions that are not multiplicative of `k`?
 
 
