@@ -1,8 +1,3 @@
-#ifndef MAX_READ_LEN
-#define MAX_READ_LEN 160 // Default value
-#endif
-#define RESULT_LEN (MAX_READ_LEN * 4 / 3)
-
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -107,9 +102,9 @@ size_t get_repeats(const std::string &seq,
 {
     size_t l = seq.length();
     size_t k = args.k;
-    if (seq.length() > MAX_READ_LEN)
+    if (seq.length() > MAX_SEQ_LEN)
     {
-        l = MAX_READ_LEN;
+        l = MAX_SEQ_LEN;
     }
     size_t n_found = 0;
     size_t max_n_found = 0;
@@ -200,7 +195,7 @@ void iterate_over_frames(const std::string &seq_name,
 
     for (int frame = 0; frame < args.k; ++frame)
     {
-        if (MAX_READ_LEN == 0)
+        if (!args.use_max_read_len)
         {
             std::string result_as_string;
             int score = get_repeats(seq, frame, result_as_string);
@@ -211,7 +206,7 @@ void iterate_over_frames(const std::string &seq_name,
                         << ", " << result_as_string
                         << ", score_type: " << args.score
                         << ", score: " << score
-                        << ", seqlen too long: " << (seq.length() > MAX_READ_LEN) << std::endl;
+                        << ", seqlen too long: " << (seq.length() > MAX_SEQ_LEN) << std::endl;
             }
         }
         else

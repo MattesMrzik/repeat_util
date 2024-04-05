@@ -11,8 +11,11 @@ void printHelp(const char *programName)
     std::cout << "  -h:                      To print this help" << std::endl;
     std::cout << "  -k <kmer_size>:          Set kmer size (default: 3)" << std::endl;
     std::cout << "  -t <threshold>:          Set threshold (default: 15)" << std::endl;
-    std::cout << "  -m <max_read_len>:       Set the maximal read length (default: no limit). Setting this" << std::endl;
-    std::cout << "                           may increase speed if reads are all about the same length." << std::endl;
+    std::cout << "  -m                       If your sequences are all about the same length, you may set this flag at runtime" << std::endl;
+    std::cout << "                           as well as -DMAX_SEQ_LEN=[int] at compile time. This program will then only consider" << std::endl;
+    std::cout << "                           the first MAX_SEQ_LEN many bases of the sequence. This may increase the " << std::endl;
+    std::cout << "                           performance of the program. The current program was " << std::endl;
+    std::cout << "                           compiled with MAX_SEQ_LEN set to " << MAX_SEQ_LEN << std::endl;
     std::cout << "  -s <score_type>:         Set the score type [[max], acc, <kmer>]" << std::endl;
     std::cout << "                               max:    the largest repeat defines the score" << std::endl;
     std::cout << "                               acc:    repeats add to the score, interruptions" << std::endl;
@@ -38,13 +41,14 @@ Args parseArgs(int argc, char *argv[])
         {
             args.threshold = std::atoi(argv[++i]);
         }
-        else if (arg == "-m" && i + 1 < argc)
-        {
-            args.max_read_len = std::atoi(argv[++i]);
-        }
+
         else if (arg == "-s" && i + 1 < argc)
         {
             args.score = argv[++i];
+        }
+        else if (arg == "-m")
+        {
+            args.use_max_read_len = true;
         }
         else if (arg == "-o" && i + 1 < argc)
         {
