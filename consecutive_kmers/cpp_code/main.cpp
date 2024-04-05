@@ -1,3 +1,8 @@
+#ifndef MAX_READ_LEN
+#define MAX_READ_LEN 160 // Default value
+#endif
+#define RESULT_LEN (MAX_READ_LEN * 4 / 3)
+
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -11,11 +16,37 @@
 #include <memory>
 #include <filesystem>
 
+#include <htslib/hts.h>
+#include <htslib/sam.h>
+#include <htslib/faidx.h>
+
+#include <seqan/seq_io.h>
+
 namespace fs = std::filesystem;
 
 #include "argparser.h"
 
 Args args;
+
+inline void init_string_type(char *str, const char *init)
+{
+    std::strcpy(str, init);
+}
+
+inline void init_string_type(std::string &str, const char *init)
+{
+    str = init;
+}
+
+inline void append_string_type(char *str, const char *append)
+{
+    std::strcat(str, append);
+}
+
+inline void append_string_type(std::string &str, const char *append)
+{
+    str.append(append);
+}
 
 /// @brief appends the repeat (kmer)_repeatSize to the result an updates the scores.
 /// @param result the result string.
@@ -25,7 +56,8 @@ Args args;
 /// @param max_acc_score the maximum accumulated score.
 /// @param kmer_score the kmer score.
 /// @param max_kmer_score the maximum kmer score.
-void append_repeat(char *result,
+template <typename ResultType>
+void append_repeat(ResultType &result,
                    char *current_kmer,
                    size_t &n_found,
                    size_t &acc_score,
@@ -33,11 +65,12 @@ void append_repeat(char *result,
                    size_t &kmer_score,
                    size_t &max_kmer_score)
 {
-    std::strcat(result, "(");
-    std::strcat(result, current_kmer);
-    std::strcat(result, ")_");
-    std::strcat(result, std::to_string(n_found + 1).c_str());
-    std::strcat(result, " ");
+
+    append_string_type(result, "(");
+    append_string_type(result, current_kmer);
+    append_string_type(result, ")_");
+    append_string_type(result, std::to_string(n_found + 1).c_str());
+    append_string_type(result, " ");
     // dont forget to decrease if no repeat was found in get_repeats()
     acc_score += n_found + 1;
     if (acc_score > max_acc_score)
@@ -67,16 +100,16 @@ void append_repeat(char *result,
 /// @param frame the frame to start from (0, 1, 2, ... , k-1).
 /// @param result the result string. Must be long enough to hold the result.
 /// @return the score of the sequence, i.e. the maximum number of consecutive k-mers.
+template <typename ResultType>
 size_t get_repeats(const std::string &seq,
                    int frame,
-                   char *result,
-                   bool only_used_prefix = false)
+                   ResultType &result)
 {
     size_t l = seq.length();
     size_t k = args.k;
-    if (only_used_prefix)
+    if (seq.length() > MAX_READ_LEN)
     {
-        l = args.max_read_len;
+        l = MAX_READ_LEN;
     }
     size_t n_found = 0;
     size_t max_n_found = 0;
@@ -87,7 +120,7 @@ size_t get_repeats(const std::string &seq,
     size_t current_result_len = 0;
     char current_kmer[k + 1];
     current_kmer[k] = '\0';
-    std::strcpy(result, seq.substr(0, frame).c_str());
+    init_string_type(result, seq.substr(0, frame).c_str());
     size_t last_position_to_check = l - ((l - frame) % k) - k;
     for (int i = frame; i < last_position_to_check; i += k)
     {
@@ -116,7 +149,7 @@ size_t get_repeats(const std::string &seq,
             }
             else
             {
-                std::strcat(result, current_kmer);
+                append_string_type(result, current_kmer);
                 if (acc_score > 0)
                 {
                     acc_score -= 1;
@@ -136,7 +169,7 @@ size_t get_repeats(const std::string &seq,
         rest_length -= k;
     }
 
-    std::strcat(result, seq.substr(rest_start, rest_length).c_str());
+    append_string_type(result, seq.substr(rest_start, rest_length).c_str());
 
     if (args.score == "acc")
     {
@@ -157,34 +190,42 @@ void iterate_over_frames(const std::string &seq_name,
                          const std::string &seq,
                          std::ofstream &outfile)
 {
-
-    bool only_used_prefix = false;
-    if (seq.length() > args.max_read_len)
-    {
-        // std::cerr << "The sequence " << seq_name << " is too longer than the specified max_len. "
-        //           << "Only using the first max_len bases of the sequence." << std::endl;
-        only_used_prefix = true;
-    }
     if (seq.length() < args.k * 2)
     {
         // std::cerr << "The sequence " << seq_name << " is too short to contain a kmer of length " << k << std::endl;
         return;
     }
 
-    size_t result_len = args.max_read_len * 4 / 3;
-    char result[result_len];
+    char result[RESULT_LEN]; // this gets overwritten in when processing the next sequence
 
     for (int frame = 0; frame < args.k; ++frame)
     {
-        int score = get_repeats(seq, frame, result, only_used_prefix);
-        if (score >= args.threshold)
+        if (MAX_READ_LEN == 0)
         {
-            outfile << seq_name
-                    << ", frame: " << frame
-                    << ", " << result
-                    << ", score_type: " << args.score
-                    << ", score: " << score
-                    << ", seqlen too long: " << only_used_prefix << std::endl;
+            std::string result_as_string;
+            int score = get_repeats(seq, frame, result_as_string);
+            if (score >= args.threshold)
+            {
+                outfile << seq_name
+                        << ", frame: " << frame
+                        << ", " << result_as_string
+                        << ", score_type: " << args.score
+                        << ", score: " << score
+                        << ", seqlen too long: " << (seq.length() > MAX_READ_LEN) << std::endl;
+            }
+        }
+        else
+        {
+            int score = get_repeats(seq, frame, result);
+            if (score >= args.threshold)
+            {
+                outfile << seq_name
+                        << ", frame: " << frame
+                        << ", " << result
+                        << ", score_type: " << args.score
+                        << ", score: " << score
+                        << ", seqlen too long: " << (seq.length() > args.max_read_len) << std::endl;
+            }
         }
     }
 }
@@ -201,11 +242,12 @@ std::string getOutputFileName(const std::string &inputPath)
     return outputPath.string();
 }
 
-/// @brief scans a file for sequences and calls iterate_over_frames to find repeats for each sequence.
+/// @brief scans a file for sequences and calls iterate_over_frames() to find repeats for each sequence.
 /// @param file_name the name of the file to scan.
 /// @param outfile the file to write the results to.
-void scan_file(std::string file_name)
+void scan_fasta_and_fastq(std::string file_name)
 {
+    std::cout << "scanning file: " << file_name << std::endl;
     std::string output_file_name = getOutputFileName(file_name);
     fs::create_directories(args.output_dir);
     std::ofstream outfile(output_file_name);
@@ -241,7 +283,7 @@ void scan_file(std::string file_name)
                 count++;
                 if (count % 1000000 == 0)
                 {
-                    std::cout << "Scanned " << count/1000000 << " million sequences in file " << file_name << std::endl;
+                    std::cout << "Scanned " << count / 1000000 << " million sequences in file " << file_name << std::endl;
                 }
                 iterate_over_frames(seq_name, seq, outfile);
                 seq.clear();
@@ -263,6 +305,129 @@ void scan_file(std::string file_name)
         iterate_over_frames(seq_name, seq, outfile);
     }
     outfile.close();
+}
+
+void scan_bam(std::string filename)
+{
+    htsFile *bamFile = hts_open(filename.c_str(), "r");
+    if (!bamFile)
+    {
+        std::cerr << "Error: Failed to open the BAM file " << filename << std::endl;
+        return;
+    }
+    std::string output_file_name = getOutputFileName(filename);
+    fs::create_directories(args.output_dir);
+    std::ofstream outfile(output_file_name);
+
+    if (!outfile.is_open())
+    {
+        std::cerr << "Error: Unable to open output file " << output_file_name + ".out" << std::endl;
+        return;
+    }
+
+    // Initialize the htslib BAM file handler
+    bam_hdr_t *header = sam_hdr_read(bamFile);
+    bam1_t *record = bam_init1();
+
+    size_t max_size = 0;
+    // Read alignments from the compressed BAM file
+    size_t count = 0;
+    while (sam_read1(bamFile, header, record) >= 0)
+    {
+        count++;
+        if (count % 1000000 == 0)
+        {
+            std::cout << "Scanned " << count / 1000000 << " million sequences in file " << filename << std::endl;
+        }
+        std::string seq_name = bam_get_qname(record);
+        uint8_t *succinct_seq = bam_get_seq(record);
+        std::string seq;
+        for (int i = 0; i < record->core.l_qseq; ++i)
+        {
+            seq += seq_nt16_str[bam_seqi(succinct_seq, i)];
+        }
+
+        iterate_over_frames(seq_name, seq, outfile);
+        // Process each alignment record here
+        // std::cout << "Read name: " << bam_get_qname(record) << std::endl;
+        // std::cout << "Read cigar: " << bam_get_cigar(record) << std::endl;
+        // std::cout << "postion: " << record->core.pos << std::endl;
+        // std::cout << "end position: " << bam_endpos(record) << std::endl;
+
+        // You can access other fields of the alignment record as needed
+    }
+
+    // Clean up
+    bam_destroy1(record);
+    bam_hdr_destroy(header);
+    hts_close(bamFile);
+}
+
+// void read_fasta(std::string filename)
+// {
+//     faidx_t *fastaIndex = fai_load(filename.c_str());
+//     if (!fastaIndex)
+//     {
+//         std::cerr << "Error: Failed to open the compressed FASTA file." << std::endl;
+//         return;
+//     }
+
+//     // Read sequences from the compressed FASTA file
+//     int seq_len;
+//     char *sequence = fai_fetch(fastaIndex, "sequence_name", &seq_len);
+//     if (sequence)
+//     {
+//         std::cout << "Sequence: " << sequence << std::endl;
+//         free(sequence); // Release memory allocated by fai_fetch
+//     }
+
+//     // Clean up
+//     fai_destroy(fastaIndex);
+// }
+
+void read_fasta_fastq_gz(std::string filename)
+{
+    std::cout << "Reading file: " << filename << std::endl;
+    seqan::SeqFileIn seqFileIn;
+    if (!open(seqFileIn, filename.c_str()))
+    {
+        std::cerr << "Error: Failed to open the compressed file." << std::endl;
+    }
+
+    // Iterate over the records in the compressed file
+    seqan::CharString id, seq, qual;
+    while (!atEnd(seqFileIn))
+    {
+        readRecord(id, seq, qual, seqFileIn);
+
+        // Process the record (e.g., print ID and sequence)
+        std::cout << "ID: " << id << std::endl;
+        std::cout << "Sequence: " << seq << std::endl;
+    }
+
+    // Close the compressed file
+    close(seqFileIn);
+}
+
+void scan_file(std::string file_name)
+{
+    std::string extension = fs::path(file_name).extension().string();
+    if (extension == ".bam")
+    {
+        scan_bam(file_name);
+    }
+    else if (extension == ".fasta" || extension == ".fa" || extension == ".fastq" || extension == ".fq")
+    {
+        scan_fasta_and_fastq(file_name);
+    }
+    else if (extension == ".gz")
+    {
+        read_fasta_fastq_gz(file_name);
+    }
+    else
+    {
+        std::cerr << "Error: Unsupported file format " << extension << std::endl;
+    }
 }
 
 int main(int argc, char *argv[])

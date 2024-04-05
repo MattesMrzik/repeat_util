@@ -8,14 +8,20 @@ It contains:
 2. the `cpp_code` directory that contains the c++ implementation
 3. a `jupyter notebook` in the directory `eval` to analyze the output of the c++ program
 ### cpp_code
+prerequisites:
+- install [HSTlib](https://github.com/samtools/htslib/tree/develop) and make sure the library path is accessible to the program
 compile with
+- apt install libseqan2-dev
 ```bash
-    g++ -std=gnu++17 main.cpp argparser.cpp -o main
+    g++ -std=gnu++17 main.cpp argparser.cpp -o main -lhts
+    g++ -std=gnu++17 main.cpp argparser.cpp -o main -lhts -DSEQAN_HAS_ZLIB -lz
 ```
 
 ### Open questions
 - What about `(CAC)_2 CAGCAACAGCAA(CAG)_15 `? Do we also want to recognize the `(CAGCAA)_2` in the middle?
-- Use different a score. Perhaps `CAG`-score together with `acc`.
+- Use different a score. Perhaps `CAG`-score together with `acc`. Maybe also a score for purity?
 - Do we want to consider interruptions that are not multiplicative of `k`?
 
 
+### TODO
+make input -d option for dir to scan for fasta, fastq, and bam files

@@ -11,7 +11,8 @@ void printHelp(const char *programName)
     std::cout << "  -h:                      To print this help" << std::endl;
     std::cout << "  -k <kmer_size>:          Set kmer size (default: 3)" << std::endl;
     std::cout << "  -t <threshold>:          Set threshold (default: 15)" << std::endl;
-    std::cout << "  -m <max_read_len>:       Set the maximal read length (default: 160)" << std::endl;
+    std::cout << "  -m <max_read_len>:       Set the maximal read length (default: no limit). Setting this" << std::endl;
+    std::cout << "                           may increase speed if reads are all about the same length." << std::endl;
     std::cout << "  -s <score_type>:         Set the score type [[max], acc, <kmer>]" << std::endl;
     std::cout << "                               max:    the largest repeat defines the score" << std::endl;
     std::cout << "                               acc:    repeats add to the score, interruptions" << std::endl;
