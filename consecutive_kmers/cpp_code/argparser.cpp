@@ -11,17 +11,21 @@ void printHelp(const char *programName)
     std::cout << "  -h:                      To print this help" << std::endl;
     std::cout << "  -k <kmer_size>:          Set kmer size (default: 3)" << std::endl;
     std::cout << "  -t <threshold>:          Set threshold (default: 15)" << std::endl;
-    std::cout << "  -m                       If your sequences are all about the same length, you may set this flag at runtime" << std::endl;
-    std::cout << "                           as well as -DMAX_SEQ_LEN=[int] at compile time. This program will then only consider" << std::endl;
-    std::cout << "                           the first MAX_SEQ_LEN many bases of the sequence. This may increase the " << std::endl;
-    std::cout << "                           performance of the program. The current program was " << std::endl;
-    std::cout << "                           compiled with MAX_SEQ_LEN set to " << MAX_SEQ_LEN << std::endl;
+    std::cout << "  -m                       If your sequences are all about the same length," << std::endl;
+    std::cout << "                           you may set this flag at runtime as well as" << std::endl;
+    std::cout << "                           -DMAX_SEQ_LEN=[int] at compile time. This" << std::endl;
+    std::cout << "                           program will then only consider the first" << std::endl;
+    std::cout << "                           MAX_SEQ_LEN many bases of the sequence. This" << std::endl;
+    std::cout << "                           may increase the  performance of the program." << std::endl;
+    std::cout << "                           The current program was compiled with " << std::endl;
+    std::cout << "                           MAX_SEQ_LEN set to " << MAX_SEQ_LEN << "." << std::endl;
     std::cout << "  -s <score_type>:         Set the score type [[max], acc, <kmer>]" << std::endl;
     std::cout << "                               max:    the largest repeat defines the score" << std::endl;
     std::cout << "                               acc:    repeats add to the score, interruptions" << std::endl;
     std::cout << "                                       decrease the score" << std::endl;
     std::cout << "                               <kmer>: repeats of this kmer add to the score," << std::endl;
-    std::cout << "                                       interruptions and other kmers decrease the score" << std::endl;
+    std::cout << "                                       interruptions and other kmers decrease" << std::endl;
+    std::cout << "                                       the score" << std::endl;
     std::cout << "  -i <file1> <file2> ...:  Input files" << std::endl;
     std::cout << "  -o <output_dir>:         Output directory (default: ../out)" << std::endl;
 }
@@ -49,6 +53,10 @@ Args parseArgs(int argc, char *argv[])
         else if (arg == "-m")
         {
             args.use_max_read_len = true;
+        }
+        else if (arg == "-v")
+        {
+            args.verbose = true;
         }
         else if (arg == "-o" && i + 1 < argc)
         {

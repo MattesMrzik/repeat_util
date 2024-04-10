@@ -102,7 +102,7 @@ size_t get_repeats(const std::string &seq,
 {
     size_t l = seq.length();
     size_t k = args.k;
-    if (seq.length() > MAX_SEQ_LEN)
+    if (seq.length() > MAX_SEQ_LEN && args.use_max_read_len)
     {
         l = MAX_SEQ_LEN;
     }
@@ -172,7 +172,7 @@ size_t get_repeats(const std::string &seq,
     }
     else if (args.score == "max")
     {
-        return n_found + 1;
+        return max_n_found + 1;
     }
     return max_kmer_score;
 }
@@ -187,7 +187,10 @@ void iterate_over_frames(const std::string &seq_name,
 {
     if (seq.length() < args.k * 2)
     {
-        // std::cerr << "The sequence " << seq_name << " is too short to contain a kmer of length " << k << std::endl;
+        if (args.verbose)
+        {
+            std::cerr << "Processing " << seq_name << " failed because the sequence is too short to contain a kmer of length " << args.k << std::endl;
+        }
         return;
     }
 
@@ -197,6 +200,10 @@ void iterate_over_frames(const std::string &seq_name,
     {
         if (!args.use_max_read_len)
         {
+            if (args.verbose)
+            {
+                std::cerr << "Processing " << seq_name << " frame " << frame << " without a maximal sequence length" << std::endl;
+            }
             std::string result_as_string;
             int score = get_repeats(seq, frame, result_as_string);
             if (score >= args.threshold)
@@ -211,6 +218,10 @@ void iterate_over_frames(const std::string &seq_name,
         }
         else
         {
+            if (args.verbose)
+            {
+                std::cerr << "Processing " << seq_name << " frame " << frame << " with a maximal sequence length " << MAX_SEQ_LEN << std::endl;
+            }
             int score = get_repeats(seq, frame, result);
             if (score >= args.threshold)
             {
@@ -313,19 +324,16 @@ void scan_bam(std::string filename)
     std::string output_file_name = getOutputFileName(filename);
     fs::create_directories(args.output_dir);
     std::ofstream outfile(output_file_name);
-
     if (!outfile.is_open())
     {
         std::cerr << "Error: Unable to open output file " << output_file_name + ".out" << std::endl;
         return;
     }
 
-    // Initialize the htslib BAM file handler
     bam_hdr_t *header = sam_hdr_read(bamFile);
     bam1_t *record = bam_init1();
 
     size_t max_size = 0;
-    // Read alignments from the compressed BAM file
     size_t count = 0;
     while (sam_read1(bamFile, header, record) >= 0)
     {
@@ -341,15 +349,12 @@ void scan_bam(std::string filename)
         {
             seq += seq_nt16_str[bam_seqi(succinct_seq, i)];
         }
-
         iterate_over_frames(seq_name, seq, outfile);
         // Process each alignment record here
         // std::cout << "Read name: " << bam_get_qname(record) << std::endl;
         // std::cout << "Read cigar: " << bam_get_cigar(record) << std::endl;
         // std::cout << "postion: " << record->core.pos << std::endl;
         // std::cout << "end position: " << bam_endpos(record) << std::endl;
-
-        // You can access other fields of the alignment record as needed
     }
 
     // Clean up
@@ -358,49 +363,43 @@ void scan_bam(std::string filename)
     hts_close(bamFile);
 }
 
-// void read_fasta(std::string filename)
-// {
-//     faidx_t *fastaIndex = fai_load(filename.c_str());
-//     if (!fastaIndex)
-//     {
-//         std::cerr << "Error: Failed to open the compressed FASTA file." << std::endl;
-//         return;
-//     }
-
-//     // Read sequences from the compressed FASTA file
-//     int seq_len;
-//     char *sequence = fai_fetch(fastaIndex, "sequence_name", &seq_len);
-//     if (sequence)
-//     {
-//         std::cout << "Sequence: " << sequence << std::endl;
-//         free(sequence); // Release memory allocated by fai_fetch
-//     }
-
-//     // Clean up
-//     fai_destroy(fastaIndex);
-// }
-
 void read_fasta_fastq_gz(std::string filename)
 {
-    std::cout << "Reading file: " << filename << std::endl;
     seqan::SeqFileIn seqFileIn;
     if (!open(seqFileIn, filename.c_str()))
     {
         std::cerr << "Error: Failed to open the compressed file." << std::endl;
     }
 
-    // Iterate over the records in the compressed file
-    seqan::CharString id, seq, qual;
-    while (!atEnd(seqFileIn))
+    std::string output_file_name = getOutputFileName(filename);
+    fs::create_directories(args.output_dir);
+    std::ofstream outfile(output_file_name);
+    if (!outfile.is_open())
     {
-        readRecord(id, seq, qual, seqFileIn);
-
-        // Process the record (e.g., print ID and sequence)
-        std::cout << "ID: " << id << std::endl;
-        std::cout << "Sequence: " << seq << std::endl;
+        std::cerr << "Error: Unable to open output file " << output_file_name + ".out" << std::endl;
+        return;
     }
 
-    // Close the compressed file
+    seqan::CharString seq_name, seq, qual;
+    size_t count = 0;
+    while (!atEnd(seqFileIn))
+    {
+        count++;
+        if (count % 1000000 == 0)
+        {
+            std::cout << "Scanned " << count / 1000000 << " million sequences in file " << filename << std::endl;
+        }
+        readRecord(seq_name, seq, qual, seqFileIn);
+
+        // Process the record (e.g., print ID and sequence)
+        if (args.verbose)
+        {
+            std::cout << "sequence name: " << seq_name << std::endl;
+            std::cout << "seq: " << seq << std::endl;
+        }
+        iterate_over_frames(toCString(seq_name), toCString(seq), outfile);
+    }
+
     close(seqFileIn);
 }
 
