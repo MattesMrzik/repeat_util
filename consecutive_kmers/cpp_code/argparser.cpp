@@ -44,7 +44,7 @@ Options:
                            MAX_SEQ_LEN many bases of the sequence. This
                            may increase the performance of the program.
                            The current program was compiled with
-                           MAX_SEQ_LEN set to )\" << MAX_SEQ_LEN << R"(.
+                           MAX_SEQ_LEN set to )" << MAX_SEQ_LEN << R"(.
   -s <score_type>:         Set the score type [[max], acc, <kmer>]
                                max:    the largest repeat defines the score
                                acc:    repeats add to the score, interruptions
