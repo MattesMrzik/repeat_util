@@ -4,3 +4,4 @@ repeat_util.iml
 consecutive_kmers/out
 consecutive_kmers/cpp_code/main
 consecutive_kmers/eval/__pycache__/*
+consecutive_kmers/cpp_code/test
