@@ -3,7 +3,7 @@
 #include <iostream>
 #include <filesystem>
 
-void printHelp(const char *programName)
+void old_printHelp(const char *programName)
 {
     std::cout << "Usage: " << programName << " [-k <kmer_size>] [-t <threshold>] [-m <max_read_len>]" << std::endl;
     std::cout << "           [-s <score_type>] [-i <file1> <file2> ...] [-o <output_dir>]" << std::endl;
@@ -30,6 +30,32 @@ void printHelp(const char *programName)
     std::cout << "  -o <output_dir>:         Output directory (default: ../out)" << std::endl;
 }
 
+void printHelp(const char *programName) {
+    std::cout << R"(Usage: )" << programName << R"( [-k <kmer_size>] [-t <threshold>] [-m <max_read_len>]
+           [-s <score_type>] [-i <file1> <file2> ...] [-o <output_dir>]
+Options:
+  -h:                      To print this help
+  -k <kmer_size>:          Set kmer size (default: 3)
+  -t <threshold>:          Set threshold (default: 15)
+  -m:                      If your sequences are all about the same length,
+                           you may set this flag at runtime as well as
+                           -DMAX_SEQ_LEN=[int] at compile time. This
+                           program will then only consider the first
+                           MAX_SEQ_LEN many bases of the sequence. This
+                           may increase the performance of the program.
+                           The current program was compiled with
+                           MAX_SEQ_LEN set to )\" << MAX_SEQ_LEN << R"(.
+  -s <score_type>:         Set the score type [[max], acc, <kmer>]
+                               max:    the largest repeat defines the score
+                               acc:    repeats add to the score, interruptions
+                                       decrease the score
+                               <kmer>: repeats of this kmer add to the score,
+                                       interruptions and other kmers decrease
+                                       the score
+  -i <file1> <file2> ...:  Input files
+  -o <output_dir>:         Output directory (default: ../out)
+)";
+}
 Args parseArgs(int argc, char *argv[])
 {
     Args args;
