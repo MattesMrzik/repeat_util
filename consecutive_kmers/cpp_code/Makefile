@@ -15,16 +15,17 @@ TEST_EXEC = test
 
 .PHONY: all main test clean
 
-all: $(EXEC) $(TEST_EXEC)
+all: $(EXEC)
 
 main: $(OBJS)
 		$(CXX) $(CXXFLAGS) -DMAX_SEQ_LEN=$(MAX_SEQ_LEN) $^ -o $@ $(LDFLAGS)
 
 test: $(TEST_OBJS)
 		$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
+		./test
 
 %.o: %.cpp
-		$(CXX) $(CXXFLAGS) -c $< -o $@
+		$(CXX) $(CXXFLAGS) -c $< -o $@ $(LDFLAGS)
 
 clean:
 		rm -f $(OBJS) $(EXEC) $(TEST_OBJS) $(TEST_EXEC)

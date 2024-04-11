@@ -12,19 +12,14 @@ It contains:
 - install [HSTlib](https://github.com/samtools/htslib/tree/develop) and make sure the library path is accessible to the program
 - libseqan2-dev
 
-### compile main and test
+### compile
 ```bash
 make
-```
-
-### compile main
-```bash
-make main
 ```
 or to set a new MAX_SEQ_LEN
 ```bash
 make clean
-make main MAX_SEQ_LEN=200
+make MAX_SEQ_LEN=200
 ```
 ### compile test with
 ```
