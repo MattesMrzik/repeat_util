@@ -15,6 +15,12 @@ public:
     this->args = args;
   }
 
+
+  /// @brief expands a string that contains collapsed repeats. For example, (GAT)_3 becomes GATGATGAT.
+  /// @param str the input string.
+  /// @return the expanded string.
+  std::string expand_collapsed_repeats(const std::string &str);
+
   /// @brief calculates a string that is the input sequence, but repeating k-mers are replaced by (kmer)_n.
   /// @param seq the input sequence.
   /// @param frame the frame to start from (0, 1, 2, ... , k-1).

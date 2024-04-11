@@ -3,9 +3,6 @@
 
 #include "ConsecutiveKmers.h"
 
-// TODO also add method to expand and add additional check for the expanded
-// result to be the same as the input sequence.
-
 TEST_CASE("get_repeats: repeats at start, middle and end")
 {
   Args args;
@@ -16,16 +13,19 @@ TEST_CASE("get_repeats: repeats at start, middle and end")
   int frame = 0;
   ck.get_repeats(seq, frame, result);
   CHECK(result == "(GAT)_2 CGT(GTT)_3 GAT(CCC)_2 ");
+  CHECK(seq == ck.expand_collapsed_repeats(result));
 
   seq = "AGATGATCGTGTTGTTGTTGATCCCCCC";
   frame = 1;
   ck.get_repeats(seq, frame, result);
   CHECK(result == "A(GAT)_2 CGT(GTT)_3 GAT(CCC)_2 ");
+  CHECK(seq == ck.expand_collapsed_repeats(result));
 
   seq = "AAGATGATCGTGTTGTTGTTGATCCCCCC";
   frame = 2;
   ck.get_repeats(seq, frame, result);
   CHECK(result == "AA(GAT)_2 CGT(GTT)_3 GAT(CCC)_2 ");
+  CHECK(seq == ck.expand_collapsed_repeats(result));
 }
 
 TEST_CASE("get_repeats: repeats in middle")
@@ -38,11 +38,13 @@ TEST_CASE("get_repeats: repeats in middle")
   int frame = 0;
   ck.get_repeats(seq, frame, result);
   CHECK(result == "ATA(GAT)_2 CGT(GTT)_3 GAT(CCC)_2 T");
+  CHECK(seq == ck.expand_collapsed_repeats(result));
 
   seq = "ATAGATGATCGTGTTGTTGTTGATCCCCCCTT";
   frame = 0;
   ck.get_repeats(seq, frame, result);
   CHECK(result == "ATA(GAT)_2 CGT(GTT)_3 GAT(CCC)_2 TT");
+  CHECK(seq == ck.expand_collapsed_repeats(result));
 }
 
 TEST_CASE("get_repeats: only repeats")
@@ -55,6 +57,7 @@ TEST_CASE("get_repeats: only repeats")
   int frame = 0;
   ck.get_repeats(seq, frame, result);
   CHECK(result == "(GAT)_3 ");
+  CHECK(seq == ck.expand_collapsed_repeats(result));
 }
 
 TEST_CASE("get_repeats: maximal length")
@@ -70,4 +73,5 @@ TEST_CASE("get_repeats: maximal length")
   int frame = 1;
   ck.get_repeats(seq, frame, result);
   CHECK(result == "A(GAT)_3 G");
+  CHECK(seq == ck.expand_collapsed_repeats(result.append("ATCC")));
 }

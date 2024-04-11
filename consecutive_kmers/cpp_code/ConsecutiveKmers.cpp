@@ -43,6 +43,44 @@ inline void append_string_type(std::string &str, const char *append)
   str.append(append);
 }
 
+std::string ConsecutiveKmers::expand_collapsed_repeats(const std::string &str)
+{
+    std::string result;
+    size_t pos = 0;
+
+    while (pos < str.size())
+    {
+        if (str[pos] == '(')
+        {
+            size_t closingPos = str.find(')', pos);
+            if (closingPos == std::string::npos)
+            {
+                return "Error: Closing parenthesis not found.";
+            }
+            std::string repeat = str.substr(pos + 1, closingPos - pos - 1);
+            size_t space_pos = str.find(' ', pos);
+            if (space_pos == std::string::npos)
+            {
+                return "Error: Space not found after opening parenthesis.";
+            }
+            std::string repeatCountStr = str.substr(closingPos + 2, space_pos - closingPos - 2);
+            int repeatCount = std::stoi(repeatCountStr);
+            std::string toRepeat = repeat;
+            for (int i = 0; i < repeatCount; ++i)
+            {
+                result += toRepeat;
+            }
+            pos = space_pos + 1;
+        }
+        else
+        {
+            result += str[pos];
+            ++pos;
+        }
+    }
+    return result;
+}
+
 template <typename ResultType>
 void ConsecutiveKmers::append_repeat(ResultType &result,
                                      char *current_kmer,

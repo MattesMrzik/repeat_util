@@ -12,14 +12,23 @@ It contains:
 - install [HSTlib](https://github.com/samtools/htslib/tree/develop) and make sure the library path is accessible to the program
 - libseqan2-dev
 
-### compile main with
+### compile main and test
 ```bash
-    g++ -std=gnu++17 main.cpp argparser.cpp -o main -lhts
-    g++ -std=gnu++17 main.cpp argparser.cpp ConsecutiveKmers.cpp -o main -lhts -DSEQAN_HAS_ZLIB -lz
+make
+```
+
+### compile main
+```bash
+make main
+```
+or to set a new MAX_SEQ_LEN
+```bash
+make clean
+make main MAX_SEQ_LEN=200
 ```
 ### compile test with
-```bash
-    g++ -std=gnu++17 test.cpp argparser.cpp ConsecutiveKmers.cpp -o test -lhts -DSEQAN_HAS_ZLIB -lz
+```
+make test
 ```
 ### Acknowledgments
 - uses the header-only test framework [doctest](https://github.com/doctest/doctest)
