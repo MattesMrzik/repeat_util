@@ -5,3 +5,4 @@ consecutive_kmers/out
 consecutive_kmers/cpp_code/main
 consecutive_kmers/eval/__pycache__/*
 consecutive_kmers/cpp_code/test
+consecutive_kmers/cpp_code/*.o
