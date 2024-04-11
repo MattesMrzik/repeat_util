@@ -15,7 +15,6 @@ public:
     this->args = args;
   }
 
-
   /// @brief expands a string that contains collapsed repeats. For example, (GAT)_3 becomes GATGATGAT.
   /// @param str the input string.
   /// @return the expanded string.
