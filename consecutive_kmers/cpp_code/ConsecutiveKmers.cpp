@@ -91,7 +91,7 @@ size_t ConsecutiveKmers::get_repeats(const std::string &seq,
   size_t k = args.k;
   if (seq.length() > args.max_seq_len && args.use_max_seq_len)
   {
-    l =  args.max_seq_len;
+    l = args.max_seq_len;
   }
   size_t n_found = 0;
   size_t max_n_found = 0;
@@ -103,9 +103,9 @@ size_t ConsecutiveKmers::get_repeats(const std::string &seq,
   char current_kmer[k + 1];
   current_kmer[k] = '\0';
   init_string_type(result, seq.substr(0, frame).c_str());
-  size_t last_position_to_check = l - ((l - frame) % k) - k;
+  size_t last_position_to_check = l - ((l - frame) % k) - k - k;
 
-  for (int i = frame; i < last_position_to_check; i += k)
+  for (int i = frame; i <= last_position_to_check; i += k)
   {
     bool is_repeat = true;
     for (size_t j = 0; j < k; j++) // this is me trying to make it lightweight
@@ -144,15 +144,20 @@ size_t ConsecutiveKmers::get_repeats(const std::string &seq,
       }
     }
   }
-  size_t rest_start = last_position_to_check;
-  size_t rest_length = l - last_position_to_check;
+  size_t remainder_start;
+  size_t remainder_length;
   if (n_found > 0)
   {
     append_repeat(result, current_kmer, n_found, acc_score, max_acc_score, kmer_score, max_kmer_score);
-    rest_length -= k;
+    remainder_start = last_position_to_check + k + k;
+    remainder_length = l - remainder_start;
   }
-
-  append_string_type(result, seq.substr(rest_start, rest_length).c_str());
+  else
+  {
+    remainder_start = last_position_to_check + k;
+    remainder_length = l - remainder_start;
+  }
+  append_string_type(result, seq.substr(remainder_start, remainder_length).c_str());
 
   if (args.score == "acc")
   {
@@ -197,14 +202,14 @@ void ConsecutiveKmers::iterate_over_frames(const std::string &seq_name,
                 << ", " << result_as_string
                 << ", score_type: " << args.score
                 << ", score: " << score
-                << ", seqlen too long: " << (seq.length() >  args.max_seq_len) << std::endl;
+                << ", seqlen too long: " << (seq.length() > args.max_seq_len) << std::endl;
       }
     }
     else
     {
       if (args.verbose)
       {
-        std::cerr << "Processing " << seq_name << " frame " << frame << " with a maximal sequence length " <<  args.max_seq_len << std::endl;
+        std::cerr << "Processing " << seq_name << " frame " << frame << " with a maximal sequence length " << args.max_seq_len << std::endl;
       }
       int score = get_repeats(seq, frame, result);
       if (score >= args.threshold)
