@@ -45,12 +45,12 @@ inline void append_string_type(std::string &str, const char *append)
 
 template <typename ResultType>
 void ConsecutiveKmers::append_repeat(ResultType &result,
-                   char *current_kmer,
-                   size_t &n_found,
-                   size_t &acc_score,
-                   size_t &max_acc_score,
-                   size_t &kmer_score,
-                   size_t &max_kmer_score)
+                                     char *current_kmer,
+                                     size_t &n_found,
+                                     size_t &acc_score,
+                                     size_t &max_acc_score,
+                                     size_t &kmer_score,
+                                     size_t &max_kmer_score)
 {
 
   append_string_type(result, "(");
@@ -84,14 +84,14 @@ void ConsecutiveKmers::append_repeat(ResultType &result,
 
 template <typename ResultType>
 size_t ConsecutiveKmers::get_repeats(const std::string &seq,
-                   int frame,
-                   ResultType &result)
+                                     int frame,
+                                     ResultType &result)
 {
   size_t l = seq.length();
   size_t k = args.k;
-  if (seq.length() > MAX_SEQ_LEN && args.use_max_read_len)
+  if (seq.length() > args.max_seq_len && args.use_max_seq_len)
   {
-    l = MAX_SEQ_LEN;
+    l =  args.max_seq_len;
   }
   size_t n_found = 0;
   size_t max_n_found = 0;
@@ -104,6 +104,7 @@ size_t ConsecutiveKmers::get_repeats(const std::string &seq,
   current_kmer[k] = '\0';
   init_string_type(result, seq.substr(0, frame).c_str());
   size_t last_position_to_check = l - ((l - frame) % k) - k;
+
   for (int i = frame; i < last_position_to_check; i += k)
   {
     bool is_repeat = true;
@@ -164,10 +165,9 @@ size_t ConsecutiveKmers::get_repeats(const std::string &seq,
   return max_kmer_score;
 }
 
-
 void ConsecutiveKmers::iterate_over_frames(const std::string &seq_name,
-                         const std::string &seq,
-                         std::ofstream &outfile)
+                                           const std::string &seq,
+                                           std::ofstream &outfile)
 {
   if (seq.length() < args.k * 2)
   {
@@ -182,7 +182,7 @@ void ConsecutiveKmers::iterate_over_frames(const std::string &seq_name,
 
   for (int frame = 0; frame < args.k; ++frame)
   {
-    if (!args.use_max_read_len)
+    if (!args.use_max_seq_len)
     {
       if (args.verbose)
       {
@@ -197,14 +197,14 @@ void ConsecutiveKmers::iterate_over_frames(const std::string &seq_name,
                 << ", " << result_as_string
                 << ", score_type: " << args.score
                 << ", score: " << score
-                << ", seqlen too long: " << (seq.length() > MAX_SEQ_LEN) << std::endl;
+                << ", seqlen too long: " << (seq.length() >  args.max_seq_len) << std::endl;
       }
     }
     else
     {
       if (args.verbose)
       {
-        std::cerr << "Processing " << seq_name << " frame " << frame << " with a maximal sequence length " << MAX_SEQ_LEN << std::endl;
+        std::cerr << "Processing " << seq_name << " frame " << frame << " with a maximal sequence length " <<  args.max_seq_len << std::endl;
       }
       int score = get_repeats(seq, frame, result);
       if (score >= args.threshold)
@@ -214,7 +214,7 @@ void ConsecutiveKmers::iterate_over_frames(const std::string &seq_name,
                 << ", " << result
                 << ", score_type: " << args.score
                 << ", score: " << score
-                << ", seqlen too long: " << (seq.length() > args.max_read_len) << std::endl;
+                << ", seqlen too long: " << (seq.length() > args.max_seq_len) << std::endl;
       }
     }
   }
@@ -249,7 +249,7 @@ void ConsecutiveKmers::scan_fasta_and_fastq(std::string file_name)
     return;
   }
 
-  std::string line; // maybe not necessary if seqs are always on one line in the input files
+  std::string line; // maybe not necessary if sequences are always on one line in the input files
   std::string seq;  // maybe also convert to char array?
   std::string seq_name;
 

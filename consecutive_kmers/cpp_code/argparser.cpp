@@ -5,7 +5,7 @@
 
 void old_printHelp(const char *programName)
 {
-    std::cout << "Usage: " << programName << " [-k <kmer_size>] [-t <threshold>] [-m <max_read_len>]" << std::endl;
+    std::cout << "Usage: " << programName << " [-k <kmer_size>] [-t <threshold>] [-m <max_seq_len>]" << std::endl;
     std::cout << "           [-s <score_type>] [-i <file1> <file2> ...] [-o <output_dir>]" << std::endl;
     std::cout << "Options:" << std::endl;
     std::cout << "  -h:                      To print this help" << std::endl;
@@ -31,7 +31,7 @@ void old_printHelp(const char *programName)
 }
 
 void printHelp(const char *programName) {
-    std::cout << R"(Usage: )" << programName << R"( [-k <kmer_size>] [-t <threshold>] [-m <max_read_len>]
+    std::cout << R"(Usage: )" << programName << R"( [-k <kmer_size>] [-t <threshold>] [-m <max_seq_len>]
            [-s <score_type>] [-i <file1> <file2> ...] [-o <output_dir>]
 Options:
   -h:                      To print this help
@@ -78,7 +78,7 @@ Args parseArgs(int argc, char *argv[])
         }
         else if (arg == "-m")
         {
-            args.use_max_read_len = true;
+            args.use_max_seq_len = true;
         }
         else if (arg == "-v")
         {
