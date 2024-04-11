@@ -7,6 +7,7 @@ It contains:
 1. `brainstorming` directory where new ideas are explored
 2. the `cpp_code` directory that contains the c++ implementation
 3. a `jupyter notebook` in the directory `eval` to analyze the output of the c++ program
+
 ## cpp_code
 ### prerequisites:
 - install [HSTlib](https://github.com/samtools/htslib/tree/develop) and make sure the library path is accessible to the program

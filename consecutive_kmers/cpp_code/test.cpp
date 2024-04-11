@@ -4,6 +4,7 @@
 #include "ConsecutiveKmers.h"
 
 // TODO also CHECK for the score to be correct
+// TODO write integration tests for all the file types
 
 TEST_CASE("get_repeats: repeats at start, middle and end")
 {

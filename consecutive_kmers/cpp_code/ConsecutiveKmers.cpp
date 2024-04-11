@@ -4,7 +4,7 @@
 
 #include <htslib/hts.h>
 #include <htslib/sam.h>
-#include <htslib/faidx.h>
+// #include <htslib/faidx.h>
 #include <seqan/seq_io.h>
 
 #include "ConsecutiveKmers.h"

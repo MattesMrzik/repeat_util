@@ -30,6 +30,7 @@ Options:
   -o <output_dir>:         Output directory (default: ../out)
 )";
 }
+
 Args parseArgs(int argc, char *argv[])
 {
     Args args;
