@@ -11,6 +11,7 @@ It contains:
 ### prerequisites:
 - install [HSTlib](https://github.com/samtools/htslib/tree/develop) and make sure the library path is accessible to the program
 - libseqan2-dev
+
 ### compile main with
 ```bash
     g++ -std=gnu++17 main.cpp argparser.cpp -o main -lhts
@@ -20,6 +21,8 @@ It contains:
 ```bash
     g++ -std=gnu++17 test.cpp argparser.cpp ConsecutiveKmers.cpp -o test -lhts -DSEQAN_HAS_ZLIB -lz
 ```
+### Acknowledgments
+- uses the header-only test framework [doctest](https://github.com/doctest/doctest)
 
 ## Open questions
 - What about `(CAC)_2 CAGCAACAGCAA(CAG)_15 `? Do we also want to recognize the `(CAGCAA)_2` in the middle?

@@ -8,9 +8,10 @@ class ConsecutiveKmers
 {
 private:
   Args args;
-public:
 
-  ConsecutiveKmers(Args args) {
+public:
+  ConsecutiveKmers(Args args)
+  {
     this->args = args;
   }
 

@@ -236,7 +236,10 @@ std::string ConsecutiveKmers::getOutputFileName(const std::string &inputPath)
 
 void ConsecutiveKmers::scan_fasta_and_fastq(std::string file_name)
 {
-  std::cout << "scanning file: " << file_name << std::endl;
+  if (args.verbose)
+  {
+    std::cerr << "Processing file " << file_name << " as fasta or fastq" << std::endl;
+  }
   std::string output_file_name = getOutputFileName(file_name);
   fs::create_directories(args.output_dir);
   std::ofstream outfile(output_file_name);
@@ -298,6 +301,10 @@ void ConsecutiveKmers::scan_fasta_and_fastq(std::string file_name)
 
 void ConsecutiveKmers::scan_bam(std::string filename)
 {
+  if (args.verbose)
+  {
+    std::cerr << "Processing file " << filename << " as BAM" << std::endl;
+  }
   htsFile *bamFile = hts_open(filename.c_str(), "r");
   if (!bamFile)
   {
@@ -348,6 +355,10 @@ void ConsecutiveKmers::scan_bam(std::string filename)
 
 void ConsecutiveKmers::scan_fasta_fastq_gz(std::string filename)
 {
+  if (args.verbose)
+  {
+    std::cerr << "Processing file " << filename << " as gzipped fasta or fastq" << std::endl;
+  }
   seqan::SeqFileIn seqFileIn;
   if (!open(seqFileIn, filename.c_str()))
   {
