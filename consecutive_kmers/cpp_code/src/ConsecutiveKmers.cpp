@@ -206,12 +206,12 @@ void ConsecutiveKmers::iterate_over_frames(const std::string &seq_name,
                                            const std::string &seq,
                                            std::ofstream &outfile)
 {
-  std::cout << "Processing " << seq_name << std::endl;
   if (seq.length() < args.k * 2)
   {
     if (args.verbose)
     {
-      std::cerr << "Processing " << seq_name << " failed because the sequence is too short to contain a kmer of length " << args.k << std::endl;
+      std::cerr << "[Verbose] "
+                << "Processing " << seq_name << " failed because the sequence is too short to contain a kmer of length " << args.k << std::endl;
     }
     return;
   }
@@ -224,13 +224,14 @@ void ConsecutiveKmers::iterate_over_frames(const std::string &seq_name,
     {
       if (args.verbose)
       {
-        std::cerr << "Processing " << seq_name << " frame " << frame << " without a maximal sequence length" << std::endl;
+        std::cerr << "[Verbose] "
+                  << "Processing " << seq_name << " frame " << frame << " without a maximal sequence length" << std::endl;
       }
       std::string result_as_string;
       int score = get_repeats(seq, frame, result_as_string);
       if (score >= args.threshold)
       {
-        outfile << seq_name.substr(1)
+        outfile << seq_name
                 << ", frame: " << frame
                 << ", " << result_as_string
                 << ", score_type: " << args.score
@@ -242,12 +243,13 @@ void ConsecutiveKmers::iterate_over_frames(const std::string &seq_name,
     {
       if (args.verbose)
       {
-        std::cerr << "Processing " << seq_name << " frame " << frame << " with a maximal sequence length " << args.max_seq_len << std::endl;
+        std::cerr << "[Verbose] "
+                  << "Processing " << seq_name << " frame " << frame << " with a maximal sequence length " << args.max_seq_len << std::endl;
       }
       int score = get_repeats(seq, frame, result);
       if (score >= args.threshold)
       {
-        outfile << seq_name.substr(1)
+        outfile << seq_name
                 << ", frame: " << frame
                 << ", " << result
                 << ", score_type: " << args.score
@@ -271,7 +273,8 @@ void ConsecutiveKmers::scan_fasta_and_fastq(std::string file_name)
 {
   if (args.verbose)
   {
-    std::cerr << "Processing file " << file_name << " as fasta or fastq" << std::endl;
+    std::cerr << "[Verbose] "
+              << "Processing file " << file_name << " as fasta or fastq" << std::endl;
   }
   std::string output_file_name = getOutputFileName(file_name);
   fs::create_directories(args.output_dir);
@@ -310,7 +313,7 @@ void ConsecutiveKmers::scan_fasta_and_fastq(std::string file_name)
         {
           std::cout << "Scanned " << count / 1000000 << " million sequences in file " << file_name << std::endl;
         }
-        iterate_over_frames(seq_name, seq, outfile);
+        iterate_over_frames(seq_name.substr(1), seq, outfile);
         seq.clear();
       }
       seq_name = line;
@@ -327,7 +330,7 @@ void ConsecutiveKmers::scan_fasta_and_fastq(std::string file_name)
   }
   if (!seq.empty())
   {
-    iterate_over_frames(seq_name, seq, outfile);
+    iterate_over_frames(seq_name.substr(1), seq, outfile);
   }
   outfile.close();
 }
@@ -336,7 +339,8 @@ void ConsecutiveKmers::scan_bam(std::string filename)
 {
   if (args.verbose)
   {
-    std::cerr << "Processing file " << filename << " as BAM" << std::endl;
+    std::cerr << "[Verbose] "
+              << "Processing file " << filename << " as BAM" << std::endl;
   }
   htsFile *bamFile = hts_open(filename.c_str(), "r");
   if (!bamFile)
@@ -390,7 +394,8 @@ void ConsecutiveKmers::scan_fasta_fastq_gz(std::string filename)
 {
   if (args.verbose)
   {
-    std::cerr << "Processing file " << filename << " as gzipped fasta or fastq" << std::endl;
+    std::cerr << "[Verbose] "
+              << "Processing file " << filename << " as gzipped fasta or fastq" << std::endl;
   }
   seqan::SeqFileIn seqFileIn;
   if (!open(seqFileIn, filename.c_str()))

@@ -1,4 +1,4 @@
-#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+#define DOCTEST_CONFIG_IMPLEMENT
 #include "doctest.h"
 
 #include <filesystem>
@@ -7,6 +7,8 @@
 
 // TODO also CHECK for the score to be correct
 // TODO write integration tests for all the file types
+
+std::filesystem::path executable_path;
 
 TEST_CASE("get_repeats: repeats at start, middle and end, frame 0")
 {
@@ -139,7 +141,7 @@ void write_fasta_file(const std::filesystem::path &path)
   file.close();
 }
 
-void write_fastq_file(const std::filesystem::path &path)
+void _write_fastq_file(const std::filesystem::path &path)
 {
   std::ofstream file(path);
   file << "@seq1\n";
@@ -158,7 +160,7 @@ void write_fastq_file(const std::filesystem::path &path)
   file.close();
 }
 
-void check_fasta_fastq_output(const std::filesystem::path &path)
+void _check_fasta_fastq_output(const std::filesystem::path &path)
 {
   std::ifstream file(path);
   std::string line;
@@ -170,7 +172,6 @@ void check_fasta_fastq_output(const std::filesystem::path &path)
   CHECK(line == "seq1, frame: 2, GT(GAT)_2 GGCG, score_type: max, score: 2, seqlen too long: 0");
   std::getline(file, line);
 
-
   // TODO check this seq
   CHECK(line == "seq2, frame: 0, (GAT)_2 CGT(GTT)_3 GAT(CCC)_2 (GAT)_2 TGTT, score_type: max, score: 3, seqlen too long: 0");
   std::getline(file, line);
@@ -180,17 +181,40 @@ void check_fasta_fastq_output(const std::filesystem::path &path)
   file.close();
 }
 
+void compare_files(const std::filesystem::path &correct_file, const std::filesystem::path &out_file)
+{
+  std::ifstream correct_file_stream(correct_file);
+  std::ifstream out_file_stream(out_file);
+  std::string line1;
+  std::string line2;
+  size_t line_number = 0;
+  bool correct_file_stream_has_next = bool(std::getline(correct_file_stream, line1));
+  bool out_file_stream_has_next = bool(std::getline(out_file_stream, line2));
+  while (correct_file_stream_has_next && out_file_stream_has_next)
+  {
+    line_number++;
+    CHECK(line1 == line2);
+    correct_file_stream_has_next = bool(std::getline(correct_file_stream, line1));
+    out_file_stream_has_next = bool(std::getline(out_file_stream, line2));
+  }
+  CHECK(correct_file_stream.eof() == out_file_stream.eof());
+}
+
 TEST_CASE("Integration test: fasta and fastq file")
 {
   // arrange
   Args args;
+  // tmp is used to not write anything to the git repo
   std::filesystem::path tempDir = std::filesystem::temp_directory_path() / "my_temp_dir_for_integration_test";
   std::filesystem::remove_all(tempDir); // TODO this is now safe!
   std::filesystem::create_directory(tempDir);
-  std::filesystem::path fastaFile = tempDir / "test.fasta";
-  std::filesystem::path fastqFile = tempDir / "test.fastq";
-  write_fasta_file(fastaFile);
-  write_fastq_file(fastqFile);
+  std::filesystem::path resources = args.executable_path / "test" / "resources";
+  std::filesystem::path fastaFile = resources / "test.fasta";
+  std::filesystem::path out_fastaFile = tempDir / "test.fasta.out";
+  std::filesystem::path correct_fastaFile_out = resources / "correct_test.fasta.out";
+  std::filesystem::path fastqFile = resources / "test.fastq";
+  std::filesystem::path out_fastqFile = tempDir / "test.fastq.out";
+  std::filesystem::path correct_fastqFile_out = resources / "correct_test.fastq.out";
   args.output_dir = tempDir;
   args.threshold = 1;
   ConsecutiveKmers ck(args);
@@ -200,9 +224,53 @@ TEST_CASE("Integration test: fasta and fastq file")
   ck.scan_fasta_and_fastq(fastqFile.string());
 
   // assert
-  check_fasta_fastq_output(tempDir / "test.fasta.out");
-  check_fasta_fastq_output(tempDir / "test.fastq.out");
+  CHECK(std::filesystem::exists(out_fastaFile));
+  CHECK(std::filesystem::exists(out_fastqFile));
+  compare_files(correct_fastaFile_out, out_fastaFile);
+  compare_files(correct_fastqFile_out, out_fastqFile);
 
   // clean
   std::filesystem::remove_all(tempDir);
+}
+
+TEST_CASE("Integration test: gzipped fasta and fastq file")
+{
+  // arrange
+  Args args;
+  // tmp is used to not write anything to the git repo
+  std::filesystem::path tempDir = std::filesystem::temp_directory_path() / "my_temp_dir_for_integration_test";
+  std::filesystem::remove_all(tempDir); // TODO this is now safe!
+  std::filesystem::create_directory(tempDir);
+  std::filesystem::path resources = args.executable_path / "test" / "resources";
+  std::filesystem::path fastaFile = resources / "test.fasta.gz";
+  std::filesystem::path out_fastaFile = tempDir / "test.fasta.gz.out";
+  std::filesystem::path correct_fastaFile_out = resources / "correct_test.fasta.out";
+  std::filesystem::path fastqFile = resources / "test.fastq.gz";
+  std::filesystem::path out_fastqFile = tempDir / "test.fastq.gz.out";
+  std::filesystem::path correct_fastqFile_out = resources / "correct_test.fastq.out";
+  args.output_dir = tempDir;
+  args.threshold = 1;
+  ConsecutiveKmers ck(args);
+
+  // act
+  ck.scan_fasta_fastq_gz(fastaFile.string());
+  ck.scan_fasta_fastq_gz(fastqFile.string());
+
+  // assert
+  CHECK(std::filesystem::exists(out_fastaFile));
+  CHECK(std::filesystem::exists(out_fastqFile));
+  compare_files(correct_fastaFile_out, out_fastaFile);
+  compare_files(correct_fastqFile_out, out_fastqFile);
+
+  // clean
+  std::filesystem::remove_all(tempDir);
+}
+
+int main(int argc, char *argv[])
+{
+  doctest::Context context(argc, argv);
+  Args args = parseArgs(argc, argv, true);
+  executable_path = args.executable_path;
+  auto result = context.run();
+  return result;
 }

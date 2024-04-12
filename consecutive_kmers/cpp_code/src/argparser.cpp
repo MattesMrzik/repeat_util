@@ -3,7 +3,8 @@
 #include <iostream>
 #include <filesystem>
 
-void printHelp(const char *programName) {
+void printHelp(const char *programName)
+{
     std::cout << R"(Usage: )" << programName << R"( [-k <kmer_size>] [-t <threshold>] [-m <max_seq_len>]
            [-s <score_type>] [-i <file1> <file2> ...] [-o <output_dir>]
 Options:
@@ -17,7 +18,8 @@ Options:
                            MAX_SEQ_LEN many bases of the sequence. This
                            may increase the performance of the program.
                            The current program was compiled with
-                           MAX_SEQ_LEN set to )" << MAX_SEQ_LEN << R"(.
+                           MAX_SEQ_LEN set to )"
+              << MAX_SEQ_LEN << R"(.
   -s <score_type>:         Set the score type [[max], acc, <kmer>]
                                max:    the largest repeat defines the score
                                acc:    repeats add to the score, interruptions
@@ -33,7 +35,14 @@ Options:
 
 Args parseArgs(int argc, char *argv[])
 {
+    return parseArgs(argc, argv, false);
+}
+
+Args parseArgs(int argc, char *argv[], bool quiet)
+{
     Args args;
+
+    args.executable_path = std::filesystem::absolute(argv[0]).parent_path();
 
     for (int i = 1; i < argc; ++i)
     {
@@ -77,16 +86,22 @@ Args parseArgs(int argc, char *argv[])
         }
         else
         {
-            std::cerr << "Error: Unknown option or missing argument: " << arg << std::endl;
-            printHelp(argv[0]);
-            std::exit(1);
+            if (!quiet)
+            {
+                std::cerr << "Error: Unknown option or missing argument: " << arg << std::endl;
+                printHelp(argv[0]);
+                std::exit(1);
+            }
         }
     }
     if (args.files.empty())
     {
-        std::cerr << "Error: No input files" << std::endl;
-        printHelp(argv[0]);
-        std::exit(1);
+        if (!quiet)
+        {
+            std::cerr << "Error: No input files" << std::endl;
+            printHelp(argv[0]);
+            std::exit(1);
+        }
     }
 
     if (args.score != "max" && args.score != "acc")

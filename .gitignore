@@ -2,8 +2,8 @@
 repeat_util.iml
 .vscode/*
 consecutive_kmers/out
-consecutive_kmers/cpp_code/main
 consecutive_kmers/eval/__pycache__/*
-consecutive_kmers/cpp_code/test
-consecutive_kmers/cpp_code/*.o
 example_data/seqs.fastq.gz_backup
+consecutive_kmers/cpp_code/bin/*
+consecutive_kmers/cpp_code/build/*
+consecutive_kmers/old_out/*

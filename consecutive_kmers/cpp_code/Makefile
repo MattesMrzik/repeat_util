@@ -5,27 +5,48 @@ LDFLAGS = -lhts -DSEQAN_HAS_ZLIB -lz
 MAX_SEQ_LEN ?= 160
 CXXFLAGS += -DMAX_SEQ_LEN=$(MAX_SEQ_LEN)
 
-SRCS = main.cpp argparser.cpp ConsecutiveKmers.cpp
-OBJS = $(SRCS:.cpp=.o)
-EXEC = main
+SRCDIR = src
+INCDIR = include
+TESTDIR = test
+BUILDDIR = build
+BINDIR = bin
 
-TEST_SRCS = test.cpp argparser.cpp ConsecutiveKmers.cpp
-TEST_OBJS = $(TEST_SRCS:.cpp=.o)
-TEST_EXEC = test
+# SRCS and OBJS is all but main since i want to include them in the test
+# and this avoids having two objects files with main functions
+SRCS := $(filter-out $(SRCDIR)/main.cpp, $(wildcard $(SRCDIR)/*.cpp))
+OBJS := $(patsubst $(SRCDIR)/%.cpp,$(BUILDDIR)/%.o,$(SRCS))
+EXEC = $(BINDIR)/main
+
+TEST_SRCS := $(wildcard $(TESTDIR)/*.cpp)
+TEST_OBJS := $(TEST_SRCS:$(TESTDIR)/%.cpp=$(BUILDDIR)/%.o)
+TEST_EXEC = $(BINDIR)/test
 
 .PHONY: all main test clean
 
 all: $(EXEC)
 
-main: $(OBJS)
-		$(CXX) $(CXXFLAGS) -DMAX_SEQ_LEN=$(MAX_SEQ_LEN) $^ -o $@ $(LDFLAGS)
+main: $(EXEC)
 
-test: $(TEST_OBJS)
+test: $(TEST_EXEC)
+		$(TEST_EXEC)
+
+$(EXEC): $(BUILDDIR)/main.o $(OBJS) | $(BINDIR)
 		$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
-		./test
 
-%.o: %.cpp
-		$(CXX) $(CXXFLAGS) -c $< -o $@ $(LDFLAGS)
+$(TEST_EXEC): $(OBJS) $(TEST_OBJS) | $(BINDIR)
+		$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
+
+$(BUILDDIR)/%.o: $(SRCDIR)/%.cpp | $(BUILDDIR)
+		$(CXX) $(CXXFLAGS) -I$(INCDIR) -c $< -o $@ $(LDFLAGS)
+
+$(BUILDDIR)/%.o: $(TESTDIR)/%.cpp | $(BUILDDIR)
+		$(CXX) $(CXXFLAGS) -I$(INCDIR) -c $< -o $@ $(LDFLAGS)
+
+$(BINDIR):
+		mkdir -p $(BINDIR)
+
+$(BUILDDIR):
+		mkdir -p $(BUILDDIR)
 
 clean:
-		rm -f $(OBJS) $(EXEC) $(TEST_OBJS) $(TEST_EXEC)
+		rm -rf $(OBJS) $(EXEC) $(TEST_OBJS) $(TEST_EXEC) $(BINDIR) $(BUILDDIR)
