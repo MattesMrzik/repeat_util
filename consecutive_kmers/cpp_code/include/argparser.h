@@ -21,7 +21,7 @@ struct Args
     size_t result_len = RESULT_LEN;        // Default value for the result length
     bool use_max_seq_len = false;          // Default value for the use of maximal read length
     bool verbose = false;                  // Default value for the verbose mode
-    std::filesystem::path executable_path; // Path to the executable
+    std::filesystem::path root_path; // Path to the executable
 };
 
 void printHelp(const char *programName);

@@ -41,8 +41,7 @@ Args parseArgs(int argc, char *argv[])
 Args parseArgs(int argc, char *argv[], bool quiet)
 {
     Args args;
-
-    args.executable_path = std::filesystem::absolute(argv[0]).parent_path();
+    args.root_path = std::filesystem::canonical(std::filesystem::absolute(argv[0])).parent_path().parent_path();
 
     for (int i = 1; i < argc; ++i)
     {

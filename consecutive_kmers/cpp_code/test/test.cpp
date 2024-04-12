@@ -8,7 +8,7 @@
 // TODO also CHECK for the score to be correct
 // TODO write integration tests for all the file types
 
-std::filesystem::path executable_path;
+std::filesystem::path root_path;
 
 TEST_CASE("get_repeats: repeats at start, middle and end, frame 0")
 {
@@ -187,12 +187,10 @@ void compare_files(const std::filesystem::path &correct_file, const std::filesys
   std::ifstream out_file_stream(out_file);
   std::string line1;
   std::string line2;
-  size_t line_number = 0;
   bool correct_file_stream_has_next = bool(std::getline(correct_file_stream, line1));
   bool out_file_stream_has_next = bool(std::getline(out_file_stream, line2));
   while (correct_file_stream_has_next && out_file_stream_has_next)
   {
-    line_number++;
     CHECK(line1 == line2);
     correct_file_stream_has_next = bool(std::getline(correct_file_stream, line1));
     out_file_stream_has_next = bool(std::getline(out_file_stream, line2));
@@ -208,7 +206,7 @@ TEST_CASE("Integration test: fasta and fastq file")
   std::filesystem::path tempDir = std::filesystem::temp_directory_path() / "my_temp_dir_for_integration_test";
   std::filesystem::remove_all(tempDir); // TODO this is now safe!
   std::filesystem::create_directory(tempDir);
-  std::filesystem::path resources = args.executable_path / "test" / "resources";
+  std::filesystem::path resources = root_path / "test" / "resources";
   std::filesystem::path fastaFile = resources / "test.fasta";
   std::filesystem::path out_fastaFile = tempDir / "test.fasta.out";
   std::filesystem::path correct_fastaFile_out = resources / "correct_test.fasta.out";
@@ -241,7 +239,7 @@ TEST_CASE("Integration test: gzipped fasta and fastq file")
   std::filesystem::path tempDir = std::filesystem::temp_directory_path() / "my_temp_dir_for_integration_test";
   std::filesystem::remove_all(tempDir); // TODO this is now safe!
   std::filesystem::create_directory(tempDir);
-  std::filesystem::path resources = args.executable_path / "test" / "resources";
+  std::filesystem::path resources = root_path / "test" / "resources";
   std::filesystem::path fastaFile = resources / "test.fasta.gz";
   std::filesystem::path out_fastaFile = tempDir / "test.fasta.gz.out";
   std::filesystem::path correct_fastaFile_out = resources / "correct_test.fasta.out";
@@ -270,7 +268,8 @@ int main(int argc, char *argv[])
 {
   doctest::Context context(argc, argv);
   Args args = parseArgs(argc, argv, true);
-  executable_path = args.executable_path;
+  root_path = args.root_path;
+  // TODO maybe instead make option to pass path to resources
   auto result = context.run();
   return result;
 }
