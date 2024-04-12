@@ -37,6 +37,16 @@ public:
                            const std::string &seq,
                            std::ofstream &outfile);
 
+  /// @brief iterates over the frames of a sequence and writes the result to a file.
+  /// @param seq_name the name of the sequence.
+  /// @param seq the sequence.
+  /// @param outfile the file to write the results to.
+  /// @param bam_aux the auxiliary information to write if the input is a BAM file.
+  void iterate_over_frames(const std::string &seq_name,
+                           const std::string &seq,
+                           std::ofstream &outfile,
+                           const std::string &bam_aux);
+
   /// @brief appends the repeat (kmer)_repeatSize to the result an updates the scores.
   /// @param result the result string.
   /// @param current_kmer the current kmer.

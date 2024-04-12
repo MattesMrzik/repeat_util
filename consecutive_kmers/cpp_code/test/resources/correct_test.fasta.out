@@ -1,6 +1,6 @@
-seq1, frame: 0, GTG(ATG)_2 GCG, score_type: max, score: 2, seqlen too long: 0
-seq1, frame: 1, G(TGA)_2 TGGCG, score_type: max, score: 2, seqlen too long: 0
-seq1, frame: 2, GT(GAT)_2 GGCG, score_type: max, score: 2, seqlen too long: 0
-seq2, frame: 0, (GAT)_2 CGT(GTT)_3 GAT(CCC)_2 (GAT)_2 TGTT, score_type: max, score: 3, seqlen too long: 0
-seq2, frame: 1, GATGATCGTG(TTG)_3 ATCCCCCCGATGATTGTT, score_type: max, score: 3, seqlen too long: 0
-seq2, frame: 2, GATGATCG(TGT)_3 TGATCCCCCCGATGATTGTT, score_type: max, score: 3, seqlen too long: 0
+seq1, frame: 0, GTG(ATG)_2 GCG, score_type: max, score: 2, seqlen too long: 0, bam aux: 
+seq1, frame: 1, G(TGA)_2 TGGCG, score_type: max, score: 2, seqlen too long: 0, bam aux: 
+seq1, frame: 2, GT(GAT)_2 GGCG, score_type: max, score: 2, seqlen too long: 0, bam aux: 
+seq2, frame: 0, (GAT)_2 CGT(GTT)_3 GAT(CCC)_2 (GAT)_2 TGTT, score_type: max, score: 3, seqlen too long: 0, bam aux: 
+seq2, frame: 1, GATGATCGTG(TTG)_3 ATCCCCCCGATGATTGTT, score_type: max, score: 3, seqlen too long: 0, bam aux: 
+seq2, frame: 2, GATGATCG(TGT)_3 TGATCCCCCCGATGATTGTT, score_type: max, score: 3, seqlen too long: 0, bam aux: 

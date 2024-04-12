@@ -265,6 +265,33 @@ TEST_CASE("Integration test: gzipped fasta and fastq file")
   std::filesystem::remove_all(tempDir);
 }
 
+TEST_CASE("Integration test: bam file")
+{
+  // arrange
+  Args args;
+  // tmp is used to not write anything to the git repo
+  std::filesystem::path tempDir = std::filesystem::temp_directory_path() / "my_temp_dir_for_integration_test";
+  std::filesystem::remove_all(tempDir); // TODO this is now safe!
+  std::filesystem::create_directory(tempDir);
+  std::filesystem::path resources = root_path / "test" / "resources";
+  std::filesystem::path bamFile = resources / "small.bam";
+  std::filesystem::path out_bamFile = tempDir / "small.bam.out";
+  std::filesystem::path correct_bamFile_out = resources / "correct_small.bam.out";
+  args.output_dir = tempDir;
+  args.threshold = 1;
+  ConsecutiveKmers ck(args);
+
+  // act
+  ck.scan_bam(bamFile.string());
+
+  // assert
+  CHECK(std::filesystem::exists(out_bamFile));
+  compare_files(correct_bamFile_out, out_bamFile);
+
+  // clean
+  std::filesystem::remove_all(tempDir);
+}
+
 int main(int argc, char *argv[])
 {
   doctest::Context context(argc, argv);

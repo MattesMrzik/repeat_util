@@ -1,0 +1,7 @@
+SOLEXA-1GA-1_1_FC20EMA:7:90:706:832, frame: 0, CTAACC(CCC)_2 CTAACCCTAACCTAA, score_type: max, score: 2, seqlen too long: 0, bam aux: chr1; 1
+SOLEXA-1GA-1_1_FC20EMA:7:90:706:832, frame: 1, CTAA(CCC)_3 TAACCCTAACCTAA, score_type: max, score: 3, seqlen too long: 0, bam aux: chr1; 1
+SOLEXA-1GA-1_1_FC20EMA:7:90:706:832, frame: 2, CTAAC(CCC)_2 CCTAACCCTAACCTAA, score_type: max, score: 2, seqlen too long: 0, bam aux: chr1; 1
+SOLEXA-1GA-1_4_FC20ENL:7:258:737:870, frame: 0, CTAACCCTA(ACT)_2 ACCCTAACCTAA, score_type: max, score: 2, seqlen too long: 0, bam aux: chr2; 4
+SOLEXA-1GA-1_4_FC20ENL:7:258:737:870, frame: 1, CTAACCCTAA(CTA)_2 CCCTAACCTAA, score_type: max, score: 2, seqlen too long: 0, bam aux: chr2; 4
+SOLEXA-1GA-1_4_FC20ENL:7:258:737:870, frame: 2, CTAACCCTAAC(TAC)_2 CCTAACCTAA, score_type: max, score: 2, seqlen too long: 0, bam aux: chr2; 4
+SOLEXA-1GA-1_1_FC20EMA:7:94:383:665, frame: 0, CTAACCCTAACCCTAACCCTA(ACC)_2 , score_type: max, score: 2, seqlen too long: 0, bam aux: chr1; 14

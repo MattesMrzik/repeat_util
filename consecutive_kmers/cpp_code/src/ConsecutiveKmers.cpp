@@ -206,6 +206,14 @@ void ConsecutiveKmers::iterate_over_frames(const std::string &seq_name,
                                            const std::string &seq,
                                            std::ofstream &outfile)
 {
+  iterate_over_frames(seq_name, seq, outfile, "");
+}
+
+void ConsecutiveKmers::iterate_over_frames(const std::string &seq_name,
+                                           const std::string &seq,
+                                           std::ofstream &outfile,
+                                           const std::string &bam_aux)
+{
   if (seq.length() < args.k * 2)
   {
     if (args.verbose)
@@ -236,7 +244,8 @@ void ConsecutiveKmers::iterate_over_frames(const std::string &seq_name,
                 << ", " << result_as_string
                 << ", score_type: " << args.score
                 << ", score: " << score
-                << ", seqlen too long: " << (seq.length() > args.max_seq_len) << std::endl;
+                << ", seqlen too long: " << (seq.length() > args.max_seq_len)
+                << ", bam aux: " << bam_aux << std::endl;
       }
     }
     else
@@ -254,7 +263,8 @@ void ConsecutiveKmers::iterate_over_frames(const std::string &seq_name,
                 << ", " << result
                 << ", score_type: " << args.score
                 << ", score: " << score
-                << ", seqlen too long: " << (seq.length() > args.max_seq_len) << std::endl;
+                << ", seqlen too long: " << (seq.length() > args.max_seq_len)
+                << ", bam aux: " << bam_aux << std::endl;
       }
     }
   }
@@ -376,7 +386,10 @@ void ConsecutiveKmers::scan_bam(std::string filename)
     {
       seq += seq_nt16_str[bam_seqi(succinct_seq, i)];
     }
-    iterate_over_frames(seq_name, seq, outfile); // overload method and add parameters for seq, pos
+    uint32_t tid = record->core.tid;              // Target ID (chromosome ID)
+    const char *chrom = header->target_name[tid]; // Chromosome name
+    std::string bam_aux = std::string(chrom) + "; " + std::to_string(record->core.pos);
+    iterate_over_frames(seq_name, seq, outfile, bam_aux); // overload method and add parameters for seq, pos
     // Process each alignment record here
     // std::cout << "Read name: " << bam_get_qname(record) << std::endl;
     // std::cout << "Read cigar: " << bam_get_cigar(record) << std::endl;
