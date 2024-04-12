@@ -193,7 +193,11 @@ size_t ConsecutiveKmers::get_repeats(const std::string &seq,
   }
   else if (args.score == "max")
   {
-    return max_n_found + 1;
+    if (max_n_found > 0)
+    {
+      return max_n_found + 1;
+    }
+    return 0;
   }
   return max_kmer_score;
 }
@@ -202,6 +206,7 @@ void ConsecutiveKmers::iterate_over_frames(const std::string &seq_name,
                                            const std::string &seq,
                                            std::ofstream &outfile)
 {
+  std::cout << "Processing " << seq_name << std::endl;
   if (seq.length() < args.k * 2)
   {
     if (args.verbose)
@@ -225,7 +230,7 @@ void ConsecutiveKmers::iterate_over_frames(const std::string &seq_name,
       int score = get_repeats(seq, frame, result_as_string);
       if (score >= args.threshold)
       {
-        outfile << seq_name
+        outfile << seq_name.substr(1)
                 << ", frame: " << frame
                 << ", " << result_as_string
                 << ", score_type: " << args.score
@@ -242,7 +247,7 @@ void ConsecutiveKmers::iterate_over_frames(const std::string &seq_name,
       int score = get_repeats(seq, frame, result);
       if (score >= args.threshold)
       {
-        outfile << seq_name
+        outfile << seq_name.substr(1)
                 << ", frame: " << frame
                 << ", " << result
                 << ", score_type: " << args.score

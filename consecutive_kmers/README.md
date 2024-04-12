@@ -9,6 +9,7 @@ It contains:
 3. a `jupyter notebook` in the directory `eval` to analyze the output of the c++ program
 
 ## cpp_code
+can scan fasta, fastq, gzip fasta and fastq files (gzip -k file), and bam
 ### prerequisites:
 - install [HSTlib](https://github.com/samtools/htslib/tree/develop) and make sure the library path is accessible to the program
 - libseqan2-dev
