@@ -1,6 +1,6 @@
 # g++ -std=gnu++17 main.cpp argparser.cpp ConsecutiveKmers.cpp -o main -lhts -DSEQAN_HAS_ZLIB -lz
 CXX = g++
-CXXFLAGS = -std=gnu++17
+CXXFLAGS = -std=gnu++17 -Wall
 LDFLAGS = -lhts -DSEQAN_HAS_ZLIB -lz
 MAX_SEQ_LEN ?= 160
 CXXFLAGS += -DMAX_SEQ_LEN=$(MAX_SEQ_LEN)

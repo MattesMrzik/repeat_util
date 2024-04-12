@@ -173,6 +173,7 @@ void _check_fasta_fastq_output(const std::filesystem::path &path)
   std::getline(file, line);
 
   // TODO check this seq
+  // TODO maybe also test too long again here, not only in "get_repeats: maximal length"
   CHECK(line == "seq2, frame: 0, (GAT)_2 CGT(GTT)_3 GAT(CCC)_2 (GAT)_2 TGTT, score_type: max, score: 3, seqlen too long: 0");
   std::getline(file, line);
   CHECK(line == "seq2, frame: 1, GATGATCGTG(TTG)_3 ATCCCCCCGATGATTGTT, score_type: max, score: 3, seqlen too long: 0");

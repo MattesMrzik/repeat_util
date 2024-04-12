@@ -376,7 +376,7 @@ void ConsecutiveKmers::scan_bam(std::string filename)
     {
       seq += seq_nt16_str[bam_seqi(succinct_seq, i)];
     }
-    iterate_over_frames(seq_name, seq, outfile);
+    iterate_over_frames(seq_name, seq, outfile); // overload method and add parameters for seq, pos
     // Process each alignment record here
     // std::cout << "Read name: " << bam_get_qname(record) << std::endl;
     // std::cout << "Read cigar: " << bam_get_cigar(record) << std::endl;
