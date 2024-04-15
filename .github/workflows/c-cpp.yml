@@ -14,6 +14,6 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: make
-      run: make -C repeat_util/consecutive_kmers/cpp_code
+      run: make -C ./repeat_util/consecutive_kmers/cpp_code
     - name: make test
-      run: make -C repeat_util/consecutive_kmers/cpp_code test
+      run: make -C ./repeat_util/consecutive_kmers/cpp_code test
