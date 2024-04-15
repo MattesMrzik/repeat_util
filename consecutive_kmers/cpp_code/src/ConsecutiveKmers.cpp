@@ -380,14 +380,29 @@ void ConsecutiveKmers::scan_bam(std::string filename)
       std::cout << "Scanned " << count / 1000000 << " million sequences in file " << filename << std::endl;
     }
     std::string seq_name = bam_get_qname(record);
+    if (args.verbose)
+    {
+      std::cerr << "[Verbose] "
+                << "Processing " << seq_name << std::endl;
+    }
     uint8_t *succinct_seq = bam_get_seq(record);
     std::string seq;
     for (int i = 0; i < record->core.l_qseq; ++i)
     {
       seq += seq_nt16_str[bam_seqi(succinct_seq, i)];
     }
-    uint32_t tid = record->core.tid;              // Target ID (chromosome ID)
-    const char *chrom = header->target_name[tid]; // Chromosome name
+    uint32_t tid = record->core.tid; // Target ID (chromosome ID)
+    const char *chrom;
+
+    if (tid >= header->n_targets)
+    {
+      chrom = "unknown";
+    }
+    else
+    {
+      chrom = header->target_name[tid];
+    }
+
     std::string bam_aux = std::string(chrom) + "; " + std::to_string(record->core.pos);
     iterate_over_frames(seq_name, seq, outfile, bam_aux); // overload method and add parameters for seq, pos
     // Process each alignment record here
@@ -395,6 +410,11 @@ void ConsecutiveKmers::scan_bam(std::string filename)
     // std::cout << "Read cigar: " << bam_get_cigar(record) << std::endl;
     // std::cout << "postion: " << record->core.pos << std::endl;
     // std::cout << "end position: " << bam_endpos(record) << std::endl;
+    if (args.verbose)
+    {
+      std::cerr << "[Verbose] "
+                << "Processed " << seq_name << std::endl;
+    }
   }
 
   // Clean up
