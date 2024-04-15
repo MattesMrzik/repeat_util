@@ -5,7 +5,7 @@ will be the output.
 
 It contains:
 1. `brainstorming` directory where new ideas are explored
-2. the `cpp_code` directory that contains the c++ implementation
+2. the `cpp_code` directory that contains the c++ implementation ![CI Status](https://github.com/MattesMrzik/repeat_util/actions/workflows/c-cpp.yml/badge.svg)
 3. a `jupyter notebook` in the directory `eval` to analyze the output of the c++ program
 
 ## cpp_code
