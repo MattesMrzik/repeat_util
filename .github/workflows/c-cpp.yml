@@ -13,6 +13,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    - name: Install htslib
+      run: sudo apt-get install libhts-dev
     - name: make
       run: make -C consecutive_kmers/cpp_code
     - name: make test
