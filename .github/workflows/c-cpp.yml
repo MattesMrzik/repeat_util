@@ -16,7 +16,7 @@ jobs:
     - name: Install htslib
       run: sudo apt-get install libhts-dev
     - name: Install SeqAn
-      run: sudo apt-get install seqan-dev
+      run: sudo apt-get install libseqan2-dev
     - name: make
       run: make -C consecutive_kmers/cpp_code
     - name: make test
