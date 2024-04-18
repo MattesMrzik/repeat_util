@@ -48,7 +48,12 @@ Args parseArgs(int argc, char *argv[], bool quiet)
         std::string arg = argv[i];
         if (arg == "-k" && i + 1 < argc)
         {
-            args.k = std::atoi(argv[++i]);
+            args.k = std::stoul(argv[++i]);
+            if (args.k < 2)
+            {
+                std::cout << "Error: k must be greater than 1" << std::endl;
+                std::exit(1);
+            }
         }
         else if (arg == "-t" && i + 1 < argc)
         {

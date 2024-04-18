@@ -23,14 +23,14 @@ TEST_EXEC = $(BINDIR)/test
 
 .PHONY: all main test clean
 
-all: $(EXEC)
+all: $(EXEC) $(TEST_EXEC)
 
 main: $(EXEC)
 
 test: $(TEST_EXEC)
 		$(TEST_EXEC)
 
-$(EXEC): $(BUILDDIR)/main.o $(OBJS) | $(BINDIR)
+$(EXEC): $(OBJS)  $(BUILDDIR)/main.o | $(BINDIR)
 		$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
 
 $(TEST_EXEC): $(OBJS) $(TEST_OBJS) | $(BINDIR)

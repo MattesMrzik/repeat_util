@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <filesystem>
+#include <algorithm> // for std::sort
 
 #include <htslib/hts.h>
 #include <htslib/sam.h>
@@ -86,7 +87,7 @@ void ConsecutiveKmers::append_repeat(ResultType &result,
   append_string_type(result, ")_");
   append_string_type(result, std::to_string(n_found + 1).c_str());
   append_string_type(result, " ");
-  // dont forget to decrease if no repeat was found in get_repeats()
+  // dont forget to decrease in get_repeats() if no repeat was found
   acc_score += n_found + 1;
   if (acc_score > max_acc_score)
   {
@@ -127,13 +128,12 @@ size_t ConsecutiveKmers::get_repeats(const std::string &seq,
   size_t max_acc_score = 0;
   size_t kmer_score = 0;
   size_t max_kmer_score = 0;
-  size_t current_result_len = 0;
   char current_kmer[k + 1];
   current_kmer[k] = '\0';
   init_string_type(result, seq.substr(0, frame).c_str());
   size_t last_position_to_check = l - ((l - frame) % k) - k - k;
 
-  for (int i = frame; i <= last_position_to_check; i += k)
+  for (size_t i = frame; i <= last_position_to_check; i += k)
   {
     bool is_repeat = true;
     for (size_t j = 0; j < k; j++) // this is me trying to make it lightweight
@@ -202,6 +202,159 @@ size_t ConsecutiveKmers::get_repeats(const std::string &seq,
   return max_kmer_score;
 }
 
+std::string reverseComplement(const std::string &kmer)
+{
+  std::string reverseComp;
+  for (int i = kmer.length() - 1; i >= 0; --i)
+  {
+    char base = kmer[i];
+    // Complement each nucleotide base
+    switch (base)
+    {
+    case 'A':
+      reverseComp += 'T';
+      break;
+    case 'T':
+      reverseComp += 'A';
+      break;
+    case 'C':
+      reverseComp += 'G';
+      break;
+    case 'G':
+      reverseComp += 'C';
+      break;
+    default:
+      // If the base is not A, T, C, or G, handle it as needed
+      break;
+    }
+  }
+  return reverseComp;
+}
+
+void ConsecutiveKmers::init_atomic_patterns()
+{
+  // TODO this may be faster than calculating the atomic patterns on the fly
+  // since with this method i dont need to do the lookup
+}
+
+// lets see if this can be called with char* since this may produce an r value which perhaps cant be passed by reference
+std::string ConsecutiveKmers::get_atomic_pattern(const std::string &kmer, bool reverse_complement)
+{
+  // check if the kmer is in the atomic pattern map
+  if (atomic_patterns.find(kmer) != atomic_patterns.end())
+  {
+    return atomic_patterns[kmer];
+  }
+  else
+  {
+    if (args.verbose)
+    {
+      std::cout << "Calculating atomic pattern for " << kmer << std::endl;
+    }
+    int size;
+    if (reverse_complement)
+    {
+      size = args.k * 2;
+    }
+    else
+    {
+      size = args.k;
+    }
+    std::string all[size];
+    for (size_t i = 0; i < args.k; i++)
+    {
+      if (reverse_complement)
+      {
+        all[2 * i] = kmer.substr(i) + kmer.substr(0, i);
+        all[2 * i + 1] = reverseComplement(kmer.substr(i) + kmer.substr(0, i));
+      }
+      else
+      {
+        all[i] = kmer.substr(i) + kmer.substr(0, i);
+      }
+    }
+    std::sort(all, all + sizeof(all) / sizeof(all[0]));
+    atomic_patterns[kmer] = all[0];
+    return atomic_patterns[kmer];
+  }
+}
+
+template <typename OutputStream>
+void ConsecutiveKmers::get_repeat_coordinates(const std::string &seq_name,
+                                              const std::string &seq,
+                                              OutputStream &outfile,
+                                              bool reverse_complement)
+
+{
+  if (seq.length() < args.k * 2)
+  {
+    if (args.verbose)
+    {
+      std::cerr << "[Verbose] "
+                << "Processing " << seq_name << " failed because the sequence is too short to contain a kmer of length " << args.k << std::endl;
+    }
+    return;
+  }
+  char repeat[args.k];
+  bool found_repeat = false;
+  size_t found_repeat_start;
+  for (size_t i = 0; i < seq.length(); i++)
+  {
+    if (found_repeat)
+    {
+      if (seq[i + args.k - 1] != seq[i + args.k + args.k - 1])
+      {
+
+        // repeat ends
+        // TODO do I want to create a hash table to check if this repeat was already found by another read?
+        // or simply write it to a file,
+        outfile << seq_name << "\t" << found_repeat_start << "\t" << i + args.k + args.k - 2
+                << "\t" << get_atomic_pattern(std::string(repeat, args.k), reverse_complement) << std::endl;
+        found_repeat = false;
+        i = i + args.k + args.k - 2;
+      }
+    }
+    else
+    {
+      bool continue_outer_loop = false;
+      for (size_t j = i + args.k; j > i; j--)
+      {
+        size_t j_prime = j - 1;
+        if (seq[j_prime] != seq[j_prime + args.k])
+        {
+          i = j_prime;
+          found_repeat = false;
+          continue_outer_loop = true;
+          continue;
+        }
+        else
+        {
+          repeat[j_prime - i] = seq[j_prime];
+        }
+      }
+      if (continue_outer_loop)
+      {
+        continue;
+      }
+      found_repeat_start = i;
+      found_repeat = true;
+    }
+  }
+  if (found_repeat) // this is perhaps never called since std::string is always null terminated
+  {
+    std::cout << "Found repeat at the end of the sequence" << std::endl;
+    outfile << seq_name << found_repeat_start << "\t" << seq.length() + args.k + args.k - 2
+            << "\t" << get_atomic_pattern(std::string(repeat, args.k), reverse_complement) << std::endl;
+  }
+}
+
+// since I do not call this method in this class with type ostringstream
+// I need to explicitly instantiate the template
+template void ConsecutiveKmers::get_repeat_coordinates(const std::string &seq_name,
+                                                       const std::string &seq,
+                                                       std::ostringstream &outfile,
+                                                       bool reverse_complement);
+
 void ConsecutiveKmers::iterate_over_frames(const std::string &seq_name,
                                            const std::string &seq,
                                            std::ofstream &outfile)
@@ -224,9 +377,10 @@ void ConsecutiveKmers::iterate_over_frames(const std::string &seq_name,
     return;
   }
 
+  // TODO put this array in the loop, and make 2 separate loops, one for the max_seq_len and one for the normal case
   char result[RESULT_LEN]; // this gets overwritten in when processing the next sequence
 
-  for (int frame = 0; frame < args.k; ++frame)
+  for (size_t frame = 0; frame < args.k; ++frame)
   {
     if (!args.use_max_seq_len)
     {
@@ -370,7 +524,6 @@ void ConsecutiveKmers::scan_bam(std::string filename)
   bam_hdr_t *header = sam_hdr_read(bamFile);
   bam1_t *record = bam_init1();
 
-  size_t max_size = 0;
   size_t count = 0;
   while (sam_read1(bamFile, header, record) >= 0)
   {
@@ -393,8 +546,7 @@ void ConsecutiveKmers::scan_bam(std::string filename)
     }
     uint32_t tid = record->core.tid; // Target ID (chromosome ID)
     const char *chrom;
-
-    if (tid >= header->n_targets)
+    if (tid >= static_cast<uint32_t>(header->n_targets))
     {
       chrom = "unknown";
     }

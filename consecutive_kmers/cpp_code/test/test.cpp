@@ -128,6 +128,79 @@ TEST_CASE("get_repeats: maximal length")
   CHECK(seq == ck.expand_collapsed_repeats(result.append("ATCC")));
 }
 
+TEST_CASE("get_repeat_coordinates: with reverse complement")
+{
+  Args args;
+  ConsecutiveKmers ck(args);
+  std::string seq = "GATGATCGTGTTGTTGTTGATCCCCCC";
+  std::string seq_name = "seq1";
+  std::ostringstream string_stream;
+  ck.get_repeat_coordinates(seq_name, seq, string_stream, true);
+  std::string output_string = string_stream.str();
+  CHECK(output_string == "seq1\t0\t5\tATC\nseq1\t8\t18\tAAC\nseq1\t21\t26\tCCC\n");
+}
+
+TEST_CASE("get_repeat_coordinates: with reverse complement, no repeats at start or stop")
+{
+  Args args;
+  ConsecutiveKmers ck(args);
+  std::string seq = "CGATGATCGTGTTGTTGTTGATCCCCCCAA";
+  std::string seq_name = "seq1";
+  std::ostringstream string_stream;
+  ck.get_repeat_coordinates(seq_name, seq, string_stream, true);
+  std::string output_string = string_stream.str();
+  CHECK(output_string == "seq1\t1\t6\tATC\nseq1\t9\t19\tAAC\nseq1\t22\t27\tCCC\n");
+}
+
+TEST_CASE("get_repeat_coordinates: without reverse complement")
+{
+  Args args;
+  ConsecutiveKmers ck(args);
+  std::string seq = "GATGATCGTGTTGTTGTTGATCCCCCC";
+  std::string seq_name = "seq1";
+  std::ostringstream string_stream;
+  ck.get_repeat_coordinates(seq_name, seq, string_stream, false);
+  std::string output_string = string_stream.str();
+  CHECK(output_string == "seq1\t0\t5\tATG\nseq1\t8\t18\tGTT\nseq1\t21\t26\tCCC\n");
+}
+
+TEST_CASE("get_repeat_coordinates: without reverse complement, no repeats at start or stop")
+{
+  Args args;
+  ConsecutiveKmers ck(args);
+  std::string seq = "CGATGATCGTGTTGTTGTTGATCCCCCCAA";
+  std::string seq_name = "seq1";
+  std::ostringstream string_stream;
+  ck.get_repeat_coordinates(seq_name, seq, string_stream, false);
+  std::string output_string = string_stream.str();
+  CHECK(output_string == "seq1\t1\t6\tATG\nseq1\t9\t19\tGTT\nseq1\t22\t27\tCCC\n");
+}
+
+TEST_CASE("get_atomic_pattern: with reverse complement")
+{
+  Args args;
+  // args.verbose = true;
+  ConsecutiveKmers ck(args);
+  CHECK(ck.get_atomic_pattern("GAT", true) == "ATC");
+  CHECK(ck.get_atomic_pattern("AAA", true) == "AAA");
+  CHECK(ck.get_atomic_pattern("CTG", true) == "AGC");
+  CHECK(ck.get_atomic_pattern("GAA", true) == "AAG");
+  CHECK(ck.get_atomic_pattern("TTC", true) == "AAG");
+  ck.get_atomic_pattern("TTC", true);
+  CHECK(ck.get_atomic_pattern_size() == 5);
+}
+
+TEST_CASE("get_atomic_pattern: without reverse complement")
+{
+  Args args;
+  ConsecutiveKmers ck(args);
+  CHECK(ck.get_atomic_pattern("GAT", false) == "ATG");
+  CHECK(ck.get_atomic_pattern("AAA", false) == "AAA");
+  CHECK(ck.get_atomic_pattern("GCG", false) == "CGG");
+  CHECK(ck.get_atomic_pattern("GCA", false) == "AGC");
+  CHECK(ck.get_atomic_pattern_size() == 4);
+}
+
 void write_fasta_file(const std::filesystem::path &path)
 {
   std::ofstream file(path);

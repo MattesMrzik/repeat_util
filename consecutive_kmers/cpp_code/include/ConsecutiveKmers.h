@@ -1,19 +1,36 @@
 #ifndef CONSECUTIVE_KMERS_H
 #define CONSECUTIVE_KMERS_H
 
-#include <string>
 #include "argparser.h"
+
+#include <string>
+#include <unordered_map>
 
 class ConsecutiveKmers
 {
 private:
   Args args;
+  std::unordered_map<std::string, std::string> atomic_patterns;
 
 public:
   ConsecutiveKmers(Args args)
   {
     this->args = args;
   }
+
+  size_t get_atomic_pattern_size() {
+    return atomic_patterns.size();
+  }
+
+  void init_atomic_patterns();
+
+  std::string get_atomic_pattern(const std::string &kmer, bool reverse_complement = false);
+
+  template <typename OutputStream>
+  void get_repeat_coordinates(const std::string &seq_name,
+                              const std::string &seq,
+                              OutputStream &outfile,
+                              bool reverse_complement = false);
 
   /// @brief expands a string that contains collapsed repeats. For example, (GAT)_3 becomes GATGATGAT.
   /// @param str the input string.
