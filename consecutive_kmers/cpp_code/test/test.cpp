@@ -128,73 +128,206 @@ TEST_CASE("get_repeats: maximal length")
   CHECK(seq == ck.expand_collapsed_repeats(result.append("ATCC")));
 }
 
-TEST_CASE("get_repeat_coordinates: with reverse complement")
+TEST_CASE("cigar_str_to_array")
 {
   // arrange
-  Args args;
-  ConsecutiveKmers ck(args);
-  std::string seq = "GATGATCGTGTTGTTGTTGATCCCCCC";
-  std::string seq_name = "seq1";
-  std::ostringstream string_stream;
+  std::string cigar_str = "12M2I3D19N7S100000H9P19=5X";
+  std::string cigar_str_02 = "3M3I3M4D2M";
+  std::vector<uint32_t> cigar_array = {12 << 4 | 0,
+                                       2 << 4 | 1,
+                                       3 << 4 | 2,
+                                       19 << 4 | 3,
+                                       7 << 4 | 4,
+                                       100000 << 4 | 5,
+                                       9 << 4 | 6,
+                                       19 << 4 | 7,
+                                       5 << 4 | 8};
+  std::vector<uint32_t> cigar_array_02 = {3 << 4 | 0,
+                                          3 << 4 | 1,
+                                          3 << 4 | 0,
+                                          4 << 4 | 2,
+                                          2 << 4 | 0};
 
-  // act
-  ck.get_repeat_coordinates(seq_name, seq, string_stream, true);
-  std::string output_string = string_stream.str();
-
-  // assert
-  CHECK(output_string == "seq1\t0\t5\tATC\nseq1\t8\t18\tAAC\nseq1\t21\t26\tCCC\n");
+  // act & assert
+  CHECK(ConsecutiveKmers::cigar_str_to_array(cigar_str) == cigar_array);
+  CHECK(ConsecutiveKmers::cigar_str_to_array(cigar_str) == cigar_array);
 }
 
-TEST_CASE("get_repeat_coordinates: with reverse complement, no repeats at start or stop")
+TEST_CASE("cigar_array_to_str")
+{
+  std::string cigar_str = "12M2I3D19N7S100000H9P19=5X";
+  std::vector<uint32_t> cigar_array = {12 << 4 | 0,
+                                       2 << 4 | 1,
+                                       3 << 4 | 2,
+                                       19 << 4 | 3,
+                                       7 << 4 | 4,
+                                       100000 << 4 | 5,
+                                       9 << 4 | 6,
+                                       19 << 4 | 7,
+                                       5 << 4 | 8};
+
+  // act & assert
+  CHECK(ConsecutiveKmers::cigar_array_to_str(cigar_array) == cigar_str);
+  CHECK(ConsecutiveKmers::cigarToString(cigar_array.data(), 9) == cigar_str);
+}
+
+void check_cigar_output(std::vector<uint32_t> result, std::vector<uint32_t> correct)
+{
+  CHECK(result.size() == correct.size());
+  for (size_t i = 0; i < result.size(); i++)
+    if (result[i] != correct[i])
+    {
+      CHECK(result[i] == correct[i]);
+      CHECK("the previous check failed comparing position" == std::to_string(i));
+    }
+}
+
+TEST_CASE("getAlignedReferencePositions")
 {
   // arrange
-  Args args;
-  ConsecutiveKmers ck(args);
-  std::string seq = "CGATGATCGTGTTGTTGTTGATCCCCCCAA";
-  std::string seq_name = "seq1";
-  std::ostringstream string_stream;
+  uint32_t ref_start = 1000;
+  // reference   0 1 2       3 4 5 6 7 8 9 10 11 12    13    14 15
+  //             | | |       | | |          |  |        |        |
+  // read        0 1 2 3 4 5 6 7 8          9 10    11 12 13    14
+  std::vector<uint32_t> vec = ConsecutiveKmers::cigar_str_to_array("3M3I3M4D2M1D1I1M1I1D1M");
+  uint32_t *cigar = vec.data();
+
+  size_t n_cigar = 11;
+  std::vector<uint32_t> true_ref_positions = {0, 1, 2, 3, 3, 3, 3, 4, 5, 10, 11, 13, 13, 14, 15};
+  std::vector<uint32_t> read_positions____ = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14};
+  for (size_t i = 0; i < true_ref_positions.size(); i++)
+  {
+    true_ref_positions[i] = true_ref_positions[i] + ref_start;
+  }
 
   // act
-  ck.get_repeat_coordinates(seq_name, seq, string_stream, true);
-  std::string output_string = string_stream.str();
+  auto result = ConsecutiveKmers::getAlignedReferencePositions(ref_start, cigar, n_cigar, read_positions____);
 
   // assert
-  CHECK(output_string == "seq1\t1\t6\tATC\nseq1\t9\t19\tAAC\nseq1\t22\t27\tCCC\n");
+  check_cigar_output(result, true_ref_positions);
 }
 
-TEST_CASE("get_repeat_coordinates: without reverse complement")
+TEST_CASE("getAlignedReferencePositions with I at beginning and end")
 {
   // arrange
-  Args args;
-  ConsecutiveKmers ck(args);
-  std::string seq = "GATGATCGTGTTGTTGTTGATCCCCCC";
-  std::string seq_name = "seq1";
-  std::ostringstream string_stream;
+  uint32_t ref_start = 1000;
+  // reference   0 1 2       3 4 5 6 7 8 9 10 11 12    13    14 15
+  //             | | |       | | |          |  |        |        |
+  // read      0 1 2 3 4 5 6 7 8 9         10 11    12 13 14    15 16
+  std::vector<uint32_t> vec = ConsecutiveKmers::cigar_str_to_array("1I3M3I3M4D2M1D1I1M1I1D1M1I");
+  uint32_t *cigar = vec.data();
+
+  size_t n_cigar = 13;
+  std::vector<uint32_t> true_ref_positions = {0, 0, 1, 2, 3, 3, 3, 3, 4, 5, 10, 11, 13, 13, 14, 15};
+  std::vector<uint32_t> read_positions____ = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
+  for (size_t i = 0; i < true_ref_positions.size(); i++)
+  {
+    true_ref_positions[i] = true_ref_positions[i] + ref_start;
+  }
 
   // act
-  ck.get_repeat_coordinates(seq_name, seq, string_stream, false);
-  std::string output_string = string_stream.str();
+  auto result = ConsecutiveKmers::getAlignedReferencePositions(ref_start, cigar, n_cigar, read_positions____);
 
   // assert
-  CHECK(output_string == "seq1\t0\t5\tATG\nseq1\t8\t18\tGTT\nseq1\t21\t26\tCCC\n");
+  check_cigar_output(result, true_ref_positions);
 }
 
-TEST_CASE("get_repeat_coordinates: without reverse complement, no repeats at start or stop")
+TEST_CASE("getAlignedReferencePositions with D at beginning and end")
 {
   // arrange
-  Args args;
-  ConsecutiveKmers ck(args);
-  std::string seq = "CGATGATCGTGTTGTTGTTGATCCCCCCAA";
-  std::string seq_name = "seq1";
-  std::ostringstream string_stream;
+  uint32_t ref_start = 1000;
+  // reference   0 1 2 3       4 5 6 7 8 9 10 11 12 13    14    15 16 17
+  //               | | |       | | |          |  |         |        |
+  // read          0 1 2 3 4 5 6 7 8          9 10     11 12 13    14
+  std::vector<uint32_t> vec = ConsecutiveKmers::cigar_str_to_array("1D3M3I3M4D2M1D1I1M1I1D1M1D");
+  uint32_t *cigar = vec.data();
+
+  size_t n_cigar = 13;
+  std::vector<uint32_t> true_ref_positions = {1, 2, 3, 4, 4, 4, 4, 5, 6, 11, 12, 14, 14, 15, 16};
+  std::vector<uint32_t> read_positions____ = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14};
+  for (size_t i = 0; i < true_ref_positions.size(); i++)
+  {
+    true_ref_positions[i] = true_ref_positions[i] + ref_start;
+  }
 
   // act
-  ck.get_repeat_coordinates(seq_name, seq, string_stream, false);
-  std::string output_string = string_stream.str();
+  auto result = ConsecutiveKmers::getAlignedReferencePositions(ref_start, cigar, n_cigar, read_positions____);
 
   // assert
-  CHECK(output_string == "seq1\t1\t6\tATG\nseq1\t9\t19\tGTT\nseq1\t22\t27\tCCC\n");
+  check_cigar_output(result, true_ref_positions);
 }
+
+TEST_CASE("getAlignedReferencePositions with 2 consecutive I, is this possible?")
+{
+}
+// TODO, these need to be updated to the new output format, which must still be decided
+// TEST_CASE("get_repeat_coordinates: with reverse complement")
+// {
+//   // arrange
+//   Args args;
+//   ConsecutiveKmers ck(args);
+//   std::string seq = "GATGATCGTGTTGTTGTTGATCCCCCC";
+//   std::string seq_name = "seq1";
+//   std::ostringstream string_stream;
+
+//   // act
+//   ck.get_repeat_coordinates(seq_name, seq, string_stream, true);
+//   std::string output_string = string_stream.str();
+
+//   // assert
+//   CHECK(output_string == "seq1\t0\t5\tATC\nseq1\t8\t18\tAAC\nseq1\t21\t26\tCCC\n");
+// }
+
+// TEST_CASE("get_repeat_coordinates: with reverse complement, no repeats at start or stop")
+// {
+//   // arrange
+//   Args args;
+//   ConsecutiveKmers ck(args);
+//   std::string seq = "CGATGATCGTGTTGTTGTTGATCCCCCCAA";
+//   std::string seq_name = "seq1";
+//   std::ostringstream string_stream;
+
+//   // act
+//   ck.get_repeat_coordinates(seq_name, seq, string_stream, true);
+//   std::string output_string = string_stream.str();
+
+//   // assert
+//   CHECK(output_string == "seq1\t1\t6\tATC\nseq1\t9\t19\tAAC\nseq1\t22\t27\tCCC\n");
+// }
+
+// TEST_CASE("get_repeat_coordinates: without reverse complement")
+// {
+//   // arrange
+//   Args args;
+//   ConsecutiveKmers ck(args);
+//   std::string seq = "GATGATCGTGTTGTTGTTGATCCCCCC";
+//   std::string seq_name = "seq1";
+//   std::ostringstream string_stream;
+
+//   // act
+//   ck.get_repeat_coordinates(seq_name, seq, string_stream, false);
+//   std::string output_string = string_stream.str();
+
+//   // assert
+//   CHECK(output_string == "seq1\t0\t5\tATG\nseq1\t8\t18\tGTT\nseq1\t21\t26\tCCC\n");
+// }
+
+// TEST_CASE("get_repeat_coordinates: without reverse complement, no repeats at start or stop")
+// {
+//   // arrange
+//   Args args;
+//   ConsecutiveKmers ck(args);
+//   std::string seq = "CGATGATCGTGTTGTTGTTGATCCCCCCAA";
+//   std::string seq_name = "seq1";
+//   std::ostringstream string_stream;
+
+//   // act
+//   ck.get_repeat_coordinates(seq_name, seq, string_stream, false);
+//   std::string output_string = string_stream.str();
+
+//   // assert
+//   CHECK(output_string == "seq1\t1\t6\tATG\nseq1\t9\t19\tGTT\nseq1\t22\t27\tCCC\n");
+// }
 
 TEST_CASE("get_atomic_pattern: with reverse complement")
 {
@@ -364,10 +497,11 @@ TEST_CASE("Integration test: gzipped fasta and fastq file")
   std::filesystem::remove_all(tempDir);
 }
 
-TEST_CASE("Integration test: bam file")
+TEST_CASE("Integration test: bam file, not as coords")
 {
   // arrange
   Args args;
+  args.bam_output_as_coords = false;
   // tmp is used to not write anything to the git repo
   std::filesystem::path tempDir = std::filesystem::temp_directory_path() / "my_temp_dir_for_integration_test";
   std::filesystem::remove_all(tempDir); // TODO this is now safe!
@@ -386,6 +520,38 @@ TEST_CASE("Integration test: bam file")
   // assert
   CHECK(std::filesystem::exists(out_bamFile));
   compare_files(correct_bamFile_out, out_bamFile);
+
+  // clean
+  std::filesystem::remove_all(tempDir);
+}
+
+TEST_CASE("Integration test: bam file with coords")
+{
+  // arrange
+  Args args;
+  args.bam_output_as_coords = true;
+  // tmp is used to not write anything to the git repo
+  std::filesystem::path tempDir = std::filesystem::temp_directory_path() / "my_temp_dir_for_integration_test";
+  std::filesystem::remove_all(tempDir); // TODO this is now safe!
+  std::filesystem::create_directory(tempDir);
+  std::filesystem::path resources = root_path / "test" / "resources";
+  std::filesystem::path bamFile = resources / "small.bam";
+  std::filesystem::path out_bamFile = tempDir / "small.bam.out";
+  std::filesystem::path correct_bamFile_out = resources / "correct_small.bam.out";
+  args.output_dir = tempDir;
+  args.threshold = 1;
+  ConsecutiveKmers ck(args);
+
+  // act
+  ck.scan_bam(bamFile.string());
+
+  // assert
+  CHECK(std::filesystem::exists(out_bamFile));
+  // TODO
+  // TODO
+  // TODO
+  // TODO
+  //  compare_files(correct_bamFile_out, out_bamFile);
 
   // clean
   std::filesystem::remove_all(tempDir);

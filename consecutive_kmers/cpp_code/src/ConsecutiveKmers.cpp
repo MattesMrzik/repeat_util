@@ -279,13 +279,224 @@ std::string ConsecutiveKmers::get_atomic_pattern(const std::string &kmer, bool r
   }
 }
 
+std::string ConsecutiveKmers::cigarToString(const uint32_t *cigar, int numCigarOps)
+{
+  std::stringstream ss;
+  for (int i = 0; i < numCigarOps; ++i)
+  {
+    int opLen = bam_cigar_oplen(cigar[i]);
+    char opChar = bam_cigar_opchr(cigar[i]);
+    ss << opLen << opChar;
+  }
+  return ss.str();
+}
+
+std::string ConsecutiveKmers::cigar_array_to_str(const std::vector<uint32_t> &cigarArray)
+{
+  std::string cigarString;
+  for (uint32_t cigarElem : cigarArray)
+  {
+    int cigarLen = cigarElem >> 4; // Extract length from upper 28 bits
+    char cigarOp;
+    switch (cigarElem & 0x0F)
+    { // Extract operation from lower 4 bits
+    case 0:
+      cigarOp = 'M';
+      break;
+    case 1:
+      cigarOp = 'I';
+      break;
+    case 2:
+      cigarOp = 'D';
+      break;
+    case 3:
+      cigarOp = 'N';
+      break;
+    case 4:
+      cigarOp = 'S';
+      break;
+    case 5:
+      cigarOp = 'H';
+      break;
+    case 6:
+      cigarOp = 'P';
+      break;
+    case 7:
+      cigarOp = '=';
+      break;
+    case 8:
+      cigarOp = 'X';
+      break;
+    default:
+      cigarOp = '?';
+      break;
+    }
+    cigarString += std::to_string(cigarLen) + cigarOp;
+  }
+  return cigarString;
+}
+
+std::vector<uint32_t> ConsecutiveKmers::cigar_str_to_array(const std::string &cigarString)
+{
+  std::vector<uint32_t> cigarArray;
+  size_t pos = 0;
+  while (pos < cigarString.length())
+  {
+    size_t nextPos = cigarString.find_first_of("MIDNSHP=X", pos);
+    if (nextPos == std::string::npos)
+    {
+      break;
+    }
+    int cigarLen = std::stoi(cigarString.substr(pos, nextPos - pos));
+    char cigarOp = cigarString[nextPos];
+    uint32_t cigarElem = cigarLen << 4; // Shift the length into the upper 28 bits
+    switch (cigarOp)
+    {
+    case 'M':
+      cigarElem |= 0;
+      break;
+    case 'I':
+      cigarElem |= 1;
+      break;
+    case 'D':
+      cigarElem |= 2;
+      break;
+    case 'N':
+      cigarElem |= 3;
+      break;
+    case 'S':
+      cigarElem |= 4;
+      break;
+    case 'H':
+      cigarElem |= 5;
+      break;
+    case 'P':
+      cigarElem |= 6;
+      break;
+    case '=':
+      cigarElem |= 7;
+      break;
+    case 'X':
+      cigarElem |= 8;
+      break;
+    }
+    cigarArray.push_back(cigarElem);
+    pos = nextPos + 1;
+  }
+  return cigarArray;
+}
+std::vector<uint32_t> ConsecutiveKmers::getAlignedReferencePositions(bam1_t *read, const std::vector<uint32_t> &readPositions)
+{
+  uint32_t ref_start = read->core.pos;
+  uint32_t *cigar = bam_get_cigar(read);
+  auto n_cigar = read->core.n_cigar;
+  return getAlignedReferencePositions(ref_start, cigar, n_cigar, readPositions); // TOD maybe return a shared pointer
+}
+
+// https://samtools.github.io/hts-specs/SAMv1.pdf
+std::vector<uint32_t> ConsecutiveKmers::getAlignedReferencePositions(uint32_t const ref_start,
+                                                                     uint32_t *cigar,
+                                                                     size_t const n_cigar,
+                                                                     const std::vector<uint32_t> &readPositions)
+{
+
+  // TODO
+  // TODO
+  // TODO does S or H clipping affect the ref start position?
+
+  // assert that readPositions are sorted!
+
+  std::vector<uint32_t> alignedRefPositions;
+
+  for (uint32_t read_pos : readPositions)
+  {
+    size_t pos_in_ref = 0;
+    uint32_t pos_in_query = 0;
+
+    for (size_t i = 0; i < n_cigar; ++i)
+    {
+      uint32_t op = bam_cigar_op(cigar[i]);
+      uint32_t len = bam_cigar_oplen(cigar[i]);
+      // std::cout << "op: " << op << " len: " << len << std::endl;
+      // std::cout << "pos_in_ref: " << pos_in_ref << " pos_in_query: " << pos_in_query << std::endl;
+
+      bool query_moved = false;
+      bool ref_moved = false;
+      switch (op)
+      {
+      case 0: // M
+      case 7: // =
+      case 8: // X
+        pos_in_query += len;
+        pos_in_ref += len;
+        query_moved = true;
+        ref_moved = true;
+        break;
+      case 1: // I
+      case 4: // S
+        pos_in_query += len;
+        query_moved = true;
+        break;
+      case 2: // D
+      case 3: // N
+        pos_in_ref += len;
+        ref_moved = true;
+        break;
+      case 5: // H
+      case 6: // P
+        break;
+      default:
+        std::cerr << "Invalid CIGAR operation: " << op << std::endl;
+        exit(1);
+        break;
+      }
+
+      // std::cout << pos_in_query << " < " << len << " is " << (pos_in_query < len) << std::endl;
+
+      // Check if the current read position is covered by this CIGAR operation
+      if (read_pos < pos_in_query)
+      {
+
+        uint32_t pos;
+        if (!ref_moved)
+        {
+          pos = ref_start + pos_in_ref;
+        }
+        else
+        {
+          pos = ref_start + (pos_in_ref + read_pos - pos_in_query);
+        }
+        // std::cout << "op: " << op << " len: " << len << std::endl;
+        // std::cout << "read_pos: " << read_pos << " pos_in_query: " << pos_in_query << " pos_in_ref: " << pos_in_ref << std::endl;
+        // std::cout << "adding: " << pos << std::endl;
+        alignedRefPositions.push_back(pos);
+        break;
+      }
+
+      // Update n to account for the bases covered by this CIGAR operation
+      // n -= len;
+    }
+  }
+
+  return alignedRefPositions;
+}
+
 template <typename OutputStream>
 void ConsecutiveKmers::get_repeat_coordinates(const std::string &seq_name,
                                               const std::string &seq,
                                               OutputStream &outfile,
+                                              const std::string &chrom,
+                                              int position,
+                                              const std::string &cigar,
                                               bool reverse_complement)
 
 {
+  // TODO dont make cigar string but keep it as int array
+  // std::cout << "Processing " << seq_name << std::endl;
+  // std::cout << "seq: " << seq << std::endl;
+  // std::cout << "chrom: " << chrom << std::endl;
+  // std::cout << "position: " << position << std::endl;
+  // std::cout << "cigar: " << cigar << std::endl;
   if (seq.length() < args.k * 2)
   {
     if (args.verbose)
@@ -353,6 +564,9 @@ void ConsecutiveKmers::get_repeat_coordinates(const std::string &seq_name,
 template void ConsecutiveKmers::get_repeat_coordinates(const std::string &seq_name,
                                                        const std::string &seq,
                                                        std::ostringstream &outfile,
+                                                       const std::string &chrom,
+                                                       int position,
+                                                       const std::string &cigar,
                                                        bool reverse_complement);
 
 void ConsecutiveKmers::iterate_over_frames(const std::string &seq_name,
@@ -555,8 +769,20 @@ void ConsecutiveKmers::scan_bam(std::string filename)
       chrom = header->target_name[tid];
     }
 
-    std::string bam_aux = std::string(chrom) + "; " + std::to_string(record->core.pos);
-    iterate_over_frames(seq_name, seq, outfile, bam_aux); // overload method and add parameters for seq, pos
+    // TODO also allow option to not calculate the exact positions of repeats,
+    // but just the starting coordinates of the read
+    if (args.bam_output_as_coords)
+    {
+      get_repeat_coordinates(seq_name, seq, outfile, chrom,
+                             record->core.pos,
+                             cigarToString(bam_get_cigar(record), record->core.n_cigar),
+                             args.use_reverse_complement_kmer_for_bam);
+    }
+    else
+    {
+      std::string bam_aux = std::string(chrom) + "; " + std::to_string(record->core.pos);
+      iterate_over_frames(seq_name, seq, outfile, bam_aux); // overload method and add parameters for seq, pos
+    }
     // Process each alignment record here
     // std::cout << "Read name: " << bam_get_qname(record) << std::endl;
     // std::cout << "Read cigar: " << bam_get_cigar(record) << std::endl;

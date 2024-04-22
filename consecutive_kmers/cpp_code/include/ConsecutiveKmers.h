@@ -6,6 +6,8 @@
 #include <string>
 #include <unordered_map>
 
+#include <htslib/sam.h>
+
 class ConsecutiveKmers
 {
 private:
@@ -18,11 +20,26 @@ public:
     this->args = args;
   }
 
-  size_t get_atomic_pattern_size() {
+  size_t get_atomic_pattern_size()
+  {
     return atomic_patterns.size();
   }
 
   void init_atomic_patterns();
+
+  static std::vector<uint32_t> cigar_str_to_array(const std::string &cigarString);
+
+  static std::string cigar_array_to_str(const std::vector<uint32_t> &cigarArray);
+
+  static std::string cigarToString(const uint32_t *cigar, int numCigarOps);
+
+  static std::vector<uint32_t> getAlignedReferencePositions(bam1_t *read,
+                                                            const std::vector<uint32_t> &readPositions);
+
+  static std::vector<uint32_t> getAlignedReferencePositions(uint32_t const ref_start,
+                                                            uint32_t *cigar,
+                                                            size_t const n_cigar,
+                                                            const std::vector<uint32_t> &readPositions);
 
   std::string get_atomic_pattern(const std::string &kmer, bool reverse_complement = false);
 
@@ -30,6 +47,9 @@ public:
   void get_repeat_coordinates(const std::string &seq_name,
                               const std::string &seq,
                               OutputStream &outfile,
+                              const std::string &chrom,
+                              int position,
+                              const std::string &cigar,
                               bool reverse_complement = false);
 
   /// @brief expands a string that contains collapsed repeats. For example, (GAT)_3 becomes GATGATGAT.
