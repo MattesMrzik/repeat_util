@@ -2,6 +2,7 @@
 #include "doctest.h"
 
 #include <filesystem>
+#include <stdexcept>
 
 #include "ConsecutiveKmers.h"
 
@@ -178,11 +179,11 @@ void check_cigar_output(std::vector<uint32_t> result, std::vector<uint32_t> corr
     if (result[i] != correct[i])
     {
       CHECK(result[i] == correct[i]);
-      CHECK("the previous check failed comparing position" == std::to_string(i));
+      CHECK("the previous check failed: returned vector at position" == std::to_string(i));
     }
 }
 
-TEST_CASE("getAlignedReferencePositions")
+TEST_CASE("get_aligned_reference_positions")
 {
   // arrange
   uint32_t ref_start = 1000;
@@ -201,13 +202,13 @@ TEST_CASE("getAlignedReferencePositions")
   }
 
   // act
-  auto result = ConsecutiveKmers::getAlignedReferencePositions(ref_start, cigar, n_cigar, read_positions____);
+  auto result = ConsecutiveKmers::get_aligned_reference_positions(ref_start, cigar, n_cigar, read_positions____);
 
   // assert
   check_cigar_output(result, true_ref_positions);
 }
 
-TEST_CASE("getAlignedReferencePositions with I at beginning and end")
+TEST_CASE("get_aligned_reference_positions with I at beginning and end")
 {
   // arrange
   uint32_t ref_start = 1000;
@@ -226,13 +227,13 @@ TEST_CASE("getAlignedReferencePositions with I at beginning and end")
   }
 
   // act
-  auto result = ConsecutiveKmers::getAlignedReferencePositions(ref_start, cigar, n_cigar, read_positions____);
+  auto result = ConsecutiveKmers::get_aligned_reference_positions(ref_start, cigar, n_cigar, read_positions____);
 
   // assert
   check_cigar_output(result, true_ref_positions);
 }
 
-TEST_CASE("getAlignedReferencePositions with D at beginning and end")
+TEST_CASE("get_aligned_reference_positions with D at beginning and end")
 {
   // arrange
   uint32_t ref_start = 1000;
@@ -251,15 +252,106 @@ TEST_CASE("getAlignedReferencePositions with D at beginning and end")
   }
 
   // act
-  auto result = ConsecutiveKmers::getAlignedReferencePositions(ref_start, cigar, n_cigar, read_positions____);
+  auto result = ConsecutiveKmers::get_aligned_reference_positions(ref_start, cigar, n_cigar, read_positions____);
 
   // assert
   check_cigar_output(result, true_ref_positions);
 }
 
-TEST_CASE("getAlignedReferencePositions with 2 consecutive I, is this possible?")
+TEST_CASE("get_aligned_reference_positions with gaps")
+{
+  // arrange
+  uint32_t ref_start = 1000;
+  // reference   0 1 2 3       4 5 6 7 8 9 10 11 12 13    14    15 16 17
+  //               | | |       | | |          |  |         |        |
+  // read          0 1 2 3 4 5 6 7 8          9 10     11 12 13    14
+  std::vector<uint32_t> vec = ConsecutiveKmers::cigar_str_to_array("1D3M3I3M4D2M1D1I1M1I1D1M1D");
+  uint32_t *cigar = vec.data();
+
+  size_t n_cigar = 13;
+  std::vector<uint32_t> true_ref_positions = {1, 2, 3, 4, 11, 12, 14, 14, 15, 16};
+  std::vector<uint32_t> read_positions____ = {0, 1, 2, 3, 9, 10, 11, 12, 13, 14};
+  for (size_t i = 0; i < true_ref_positions.size(); i++)
+  {
+    true_ref_positions[i] = true_ref_positions[i] + ref_start;
+  }
+
+  // act
+  auto result = ConsecutiveKmers::get_aligned_reference_positions(ref_start, cigar, n_cigar, read_positions____);
+
+  // assert
+  check_cigar_output(result, true_ref_positions);
+}
+
+TEST_CASE("get_aligned_reference_positions not in order in middle")
+{
+  // arrange
+  uint32_t ref_start = 1000;
+  std::vector<uint32_t> vec = ConsecutiveKmers::cigar_str_to_array("1D3M3I3M4D2M1D1I1M1I1D1M1D");
+  uint32_t *cigar = vec.data();
+  size_t n_cigar = 13;
+  std::vector<uint32_t> read_positions = {0, 1, 2, 12, 9, 10, 11, 12, 15, 14};
+
+  // act & assert
+  CHECK_THROWS(ConsecutiveKmers::get_aligned_reference_positions(ref_start, cigar, n_cigar, read_positions));
+  try
+  {
+    auto result = ConsecutiveKmers::get_aligned_reference_positions(ref_start, cigar, n_cigar, read_positions);
+  }
+  catch (const std::runtime_error &e)
+  {
+    CHECK_EQ(std::string(e.what()), "[Error] read_positions are not sorted!");
+  }
+}
+TEST_CASE("get_aligned_reference_positions not in order at very end")
+{
+  // arrange
+  uint32_t ref_start = 1000;
+  std::vector<uint32_t> vec = ConsecutiveKmers::cigar_str_to_array("1D3M3I3M4D2M1D1I1M1I1D1M1D");
+  uint32_t *cigar = vec.data();
+  size_t n_cigar = 13;
+  std::vector<uint32_t> read_positions = {0, 1, 2, 3, 9, 10, 11, 12, 15, 14};
+
+  // act & assert
+  CHECK_THROWS(ConsecutiveKmers::get_aligned_reference_positions(ref_start, cigar, n_cigar, read_positions));
+  try
+  {
+    auto result = ConsecutiveKmers::get_aligned_reference_positions(ref_start, cigar, n_cigar, read_positions);
+  }
+  catch (const std::runtime_error &e)
+  {
+    CHECK_EQ(std::string(e.what()), "[Error] read_positions are not sorted!");
+  }
+}
+
+// TODO what is returned if read_pos is not in the cigar string?
+
+
+TEST_CASE("get_aligned_reference_positions not in order at beginning")
+{
+  // arrange
+  uint32_t ref_start = 1000;
+  std::vector<uint32_t> vec = ConsecutiveKmers::cigar_str_to_array("1D3M3I3M4D2M1D1I1M1I1D1M1D");
+  uint32_t *cigar = vec.data();
+  size_t n_cigar = 13;
+  std::vector<uint32_t> read_positions = {1, 0, 2, 15, 9, 10, 11, 12, 15, 14};
+
+  // act & assert
+  CHECK_THROWS(ConsecutiveKmers::get_aligned_reference_positions(ref_start, cigar, n_cigar, read_positions));
+  try
+  {
+    auto result = ConsecutiveKmers::get_aligned_reference_positions(ref_start, cigar, n_cigar, read_positions);
+  }
+  catch (const std::runtime_error &e)
+  {
+    CHECK_EQ(std::string(e.what()), "[Error] read_positions are not sorted!");
+  }
+}
+
+TEST_CASE("get_aligned_reference_positions with 2 consecutive I, is this possible?")
 {
 }
+
 // TODO, these need to be updated to the new output format, which must still be decided
 // TEST_CASE("get_repeat_coordinates: with reverse complement")
 // {

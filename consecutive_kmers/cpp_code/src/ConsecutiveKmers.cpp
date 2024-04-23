@@ -2,6 +2,7 @@
 #include <string>
 #include <filesystem>
 #include <algorithm> // for std::sort
+#include <stdexcept>
 
 #include <htslib/hts.h>
 #include <htslib/sam.h>
@@ -385,110 +386,107 @@ std::vector<uint32_t> ConsecutiveKmers::cigar_str_to_array(const std::string &ci
   }
   return cigarArray;
 }
-std::vector<uint32_t> ConsecutiveKmers::getAlignedReferencePositions(bam1_t *read, const std::vector<uint32_t> &readPositions)
+std::vector<uint32_t> ConsecutiveKmers::get_aligned_reference_positions(bam1_t *read, const std::vector<uint32_t> &readPositions)
 {
   uint32_t ref_start = read->core.pos;
   uint32_t *cigar = bam_get_cigar(read);
   auto n_cigar = read->core.n_cigar;
-  return getAlignedReferencePositions(ref_start, cigar, n_cigar, readPositions); // TOD maybe return a shared pointer
+  return get_aligned_reference_positions(ref_start, cigar, n_cigar, readPositions); // TOD maybe return a shared pointer
 }
 
 // https://samtools.github.io/hts-specs/SAMv1.pdf
-std::vector<uint32_t> ConsecutiveKmers::getAlignedReferencePositions(uint32_t const ref_start,
-                                                                     uint32_t *cigar,
-                                                                     size_t const n_cigar,
-                                                                     const std::vector<uint32_t> &readPositions)
+std::vector<uint32_t> ConsecutiveKmers::get_aligned_reference_positions(uint32_t const ref_start,
+                                                                        uint32_t *cigar,
+                                                                        size_t const n_cigar,
+                                                                        const std::vector<uint32_t> &read_positions)
 {
-
-  // TODO
-  // TODO
-  // TODO does S or H clipping affect the ref start position?
-
-  // assert that readPositions are sorted!
-
-  std::vector<uint32_t> alignedRefPositions;
-
-  for (uint32_t read_pos : readPositions)
+  std::vector<uint32_t> aligned_ref_positions;
+  if (read_positions.empty())
   {
-    size_t pos_in_ref = 0;
-    uint32_t pos_in_query = 0;
+    return aligned_ref_positions;
+  }
+  uint32_t read_pos_idx = 0;
+  uint32_t read_pos = read_positions[0];
+  uint32_t previous_read_pos = 0;
+  size_t pos_in_ref = 0;
+  uint32_t pos_in_query = 0;
 
-    for (size_t i = 0; i < n_cigar; ++i)
+  for (size_t i = 0; i < n_cigar; ++i)
+  {
+    uint32_t op = bam_cigar_op(cigar[i]);
+    uint32_t len = bam_cigar_oplen(cigar[i]);
+    bool ref_moved = false;
+    // bool query_moved = false;
+    switch (op)
     {
-      uint32_t op = bam_cigar_op(cigar[i]);
-      uint32_t len = bam_cigar_oplen(cigar[i]);
-      // std::cout << "op: " << op << " len: " << len << std::endl;
-      // std::cout << "pos_in_ref: " << pos_in_ref << " pos_in_query: " << pos_in_query << std::endl;
+    case 0: // M
+    case 7: // =
+    case 8: // X
+      pos_in_query += len;
+      pos_in_ref += len;
+      // query_moved = true;
+      ref_moved = true;
+      break;
+    case 1: // I
+    case 4: // S
+      pos_in_query += len;
+      // query_moved = true;
+      break;
+    case 2: // D
+    case 3: // N
+      pos_in_ref += len;
+      ref_moved = true;
+      break;
+    case 5: // H: H can only be present as the first and/or last operation
+    case 6: // P
+      break;
+    }
 
-      bool query_moved = false;
-      bool ref_moved = false;
-      switch (op)
+    // Check if the current read position is covered by this CIGAR operation
+    while (read_pos < pos_in_query)
+    {
+      uint32_t pos;
+      if (!ref_moved)
       {
-      case 0: // M
-      case 7: // =
-      case 8: // X
-        pos_in_query += len;
-        pos_in_ref += len;
-        query_moved = true;
-        ref_moved = true;
-        break;
-      case 1: // I
-      case 4: // S
-        pos_in_query += len;
-        query_moved = true;
-        break;
-      case 2: // D
-      case 3: // N
-        pos_in_ref += len;
-        ref_moved = true;
-        break;
-      case 5: // H
-      case 6: // P
-        break;
-      default:
-        std::cerr << "Invalid CIGAR operation: " << op << std::endl;
-        exit(1);
-        break;
+        pos = ref_start + pos_in_ref;
       }
-
-      // std::cout << pos_in_query << " < " << len << " is " << (pos_in_query < len) << std::endl;
-
-      // Check if the current read position is covered by this CIGAR operation
-      if (read_pos < pos_in_query)
+      else
       {
-
-        uint32_t pos;
-        if (!ref_moved)
-        {
-          pos = ref_start + pos_in_ref;
-        }
-        else
-        {
-          pos = ref_start + (pos_in_ref + read_pos - pos_in_query);
-        }
-        // std::cout << "op: " << op << " len: " << len << std::endl;
-        // std::cout << "read_pos: " << read_pos << " pos_in_query: " << pos_in_query << " pos_in_ref: " << pos_in_ref << std::endl;
-        // std::cout << "adding: " << pos << std::endl;
-        alignedRefPositions.push_back(pos);
-        break;
+        pos = ref_start + (pos_in_ref + read_pos - pos_in_query);
       }
-
-      // Update n to account for the bases covered by this CIGAR operation
-      // n -= len;
+      aligned_ref_positions.push_back(pos);
+      read_pos_idx++;
+      if (read_pos_idx < read_positions.size())
+      {
+        previous_read_pos = read_pos;
+        read_pos = read_positions[read_pos_idx];
+      }
+      else
+      {
+        return aligned_ref_positions;
+      }
+      if (previous_read_pos > read_pos)
+      {
+        // maybe this is never reached
+        throw std::runtime_error("[Error] read_positions are not sorted!");
+      }
     }
   }
-
-  return alignedRefPositions;
+  if (read_pos_idx < read_positions.size())
+  {
+    throw std::runtime_error("[Error] read_positions are not sorted!");
+    }
+  return aligned_ref_positions;
 }
 
 template <typename OutputStream>
-void ConsecutiveKmers::get_repeat_coordinates(const std::string &seq_name,
-                                              const std::string &seq,
-                                              OutputStream &outfile,
-                                              const std::string &chrom,
-                                              int position,
-                                              const std::string &cigar,
-                                              bool reverse_complement)
+void ConsecutiveKmers::write_repeat_coordinates(const std::string &seq_name,
+                                                const std::string &seq,
+                                                OutputStream &outfile,
+                                                const std::string &chrom,
+                                                int position,
+                                                const std::string &cigar,
+                                                bool reverse_complement)
 
 {
   // TODO dont make cigar string but keep it as int array
@@ -554,20 +552,22 @@ void ConsecutiveKmers::get_repeat_coordinates(const std::string &seq_name,
   if (found_repeat) // this is perhaps never called since std::string is always null terminated
   {
     std::cout << "Found repeat at the end of the sequence" << std::endl;
-    outfile << seq_name << found_repeat_start << "\t" << seq.length() + args.k + args.k - 2
-            << "\t" << get_atomic_pattern(std::string(repeat, args.k), reverse_complement) << std::endl;
+    outfile << seq_name << '\t'
+            << found_repeat_start << '\t'
+            << seq.length() + args.k + args.k - 2 << '\t'
+            << get_atomic_pattern(std::string(repeat, args.k), reverse_complement) << std::endl;
   }
 }
 
 // since I do not call this method in this class with type ostringstream
 // I need to explicitly instantiate the template
-template void ConsecutiveKmers::get_repeat_coordinates(const std::string &seq_name,
-                                                       const std::string &seq,
-                                                       std::ostringstream &outfile,
-                                                       const std::string &chrom,
-                                                       int position,
-                                                       const std::string &cigar,
-                                                       bool reverse_complement);
+template void ConsecutiveKmers::write_repeat_coordinates(const std::string &seq_name,
+                                                         const std::string &seq,
+                                                         std::ostringstream &outfile,
+                                                         const std::string &chrom,
+                                                         int position,
+                                                         const std::string &cigar,
+                                                         bool reverse_complement);
 
 void ConsecutiveKmers::iterate_over_frames(const std::string &seq_name,
                                            const std::string &seq,
@@ -638,7 +638,7 @@ void ConsecutiveKmers::iterate_over_frames(const std::string &seq_name,
   }
 }
 
-std::string ConsecutiveKmers::getOutputFileName(const std::string &inputPath)
+std::string ConsecutiveKmers::get_output_file_name(const std::string &inputPath)
 {
   fs::path inputFilePath(inputPath);
   std::string filename = inputFilePath.filename().string();
@@ -654,7 +654,7 @@ void ConsecutiveKmers::scan_fasta_and_fastq(std::string file_name)
     std::cerr << "[Verbose] "
               << "Processing file " << file_name << " as fasta or fastq" << std::endl;
   }
-  std::string output_file_name = getOutputFileName(file_name);
+  std::string output_file_name = get_output_file_name(file_name);
   fs::create_directories(args.output_dir);
   std::ofstream outfile(output_file_name);
 
@@ -726,7 +726,7 @@ void ConsecutiveKmers::scan_bam(std::string filename)
     std::cerr << "Error: Failed to open the BAM file " << filename << std::endl;
     return;
   }
-  std::string output_file_name = getOutputFileName(filename);
+  std::string output_file_name = get_output_file_name(filename);
   fs::create_directories(args.output_dir);
   std::ofstream outfile(output_file_name);
   if (!outfile.is_open())
@@ -771,12 +771,16 @@ void ConsecutiveKmers::scan_bam(std::string filename)
 
     // TODO also allow option to not calculate the exact positions of repeats,
     // but just the starting coordinates of the read
+
+    // TODO Bit 0x100 marks the alignment not to be used in certain analyses when the tools in use are aware
+    // of this bit. It is typically used to flag alternative mappings when multiple mappings are presented
+    // in a SAM
     if (args.bam_output_as_coords)
     {
-      get_repeat_coordinates(seq_name, seq, outfile, chrom,
-                             record->core.pos,
-                             cigarToString(bam_get_cigar(record), record->core.n_cigar),
-                             args.use_reverse_complement_kmer_for_bam);
+      write_repeat_coordinates(seq_name, seq, outfile, chrom,
+                               record->core.pos,
+                               cigarToString(bam_get_cigar(record), record->core.n_cigar),
+                               args.use_reverse_complement_kmer_for_bam);
     }
     else
     {
@@ -814,7 +818,7 @@ void ConsecutiveKmers::scan_fasta_fastq_gz(std::string filename)
     std::cerr << "Error: Failed to open the compressed file." << std::endl;
   }
 
-  std::string output_file_name = getOutputFileName(filename);
+  std::string output_file_name = get_output_file_name(filename);
   fs::create_directories(args.output_dir);
   std::ofstream outfile(output_file_name);
   if (!outfile.is_open())
