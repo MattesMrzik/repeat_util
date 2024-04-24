@@ -150,8 +150,9 @@ TEST_CASE("cigar_str_to_array")
                                           2 << 4 | 0};
 
   // act & assert
-  CHECK(ConsecutiveKmers::cigar_str_to_array(cigar_str) == cigar_array);
-  CHECK(ConsecutiveKmers::cigar_str_to_array(cigar_str) == cigar_array);
+  CHECK(ConsecutiveKmers::cigar_str_to_vector(cigar_str) == cigar_array);
+  CHECK(ConsecutiveKmers::cigar_str_to_vector(cigar_str) == cigar_array);
+  CHECK(ConsecutiveKmers::cigar_vector_to_str(cigar_array) == cigar_str);
 }
 
 TEST_CASE("cigar_array_to_str")
@@ -168,8 +169,9 @@ TEST_CASE("cigar_array_to_str")
                                        5 << 4 | 8};
 
   // act & assert
-  CHECK(ConsecutiveKmers::cigar_array_to_str(cigar_array) == cigar_str);
-  CHECK(ConsecutiveKmers::cigarToString(cigar_array.data(), 9) == cigar_str);
+  CHECK(ConsecutiveKmers::cigar_vector_to_str(cigar_array) == cigar_str);
+  CHECK(ConsecutiveKmers::cigar_array_to_str(cigar_array.data(), 9) == cigar_str);
+  CHECK(ConsecutiveKmers::cigar_vector_to_str(cigar_array) == cigar_str);
 }
 
 void check_cigar_output(std::vector<uint32_t> result, std::vector<uint32_t> correct)
@@ -190,9 +192,7 @@ TEST_CASE("get_aligned_reference_positions")
   // reference   0 1 2       3 4 5 6 7 8 9 10 11 12    13    14 15
   //             | | |       | | |          |  |        |        |
   // read        0 1 2 3 4 5 6 7 8          9 10    11 12 13    14
-  std::vector<uint32_t> vec = ConsecutiveKmers::cigar_str_to_array("3M3I3M4D2M1D1I1M1I1D1M");
-  uint32_t *cigar = vec.data();
-
+  uint32_t *cigar = ConsecutiveKmers::cigar_str_to_array("3M3I3M4D2M1D1I1M1I1D1M");
   size_t n_cigar = 11;
   std::vector<uint32_t> true_ref_positions = {0, 1, 2, 3, 3, 3, 3, 4, 5, 10, 11, 13, 13, 14, 15};
   std::vector<uint32_t> read_positions____ = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14};
@@ -215,9 +215,7 @@ TEST_CASE("get_aligned_reference_positions with I at beginning and end")
   // reference   0 1 2       3 4 5 6 7 8 9 10 11 12    13    14 15
   //             | | |       | | |          |  |        |        |
   // read      0 1 2 3 4 5 6 7 8 9         10 11    12 13 14    15 16
-  std::vector<uint32_t> vec = ConsecutiveKmers::cigar_str_to_array("1I3M3I3M4D2M1D1I1M1I1D1M1I");
-  uint32_t *cigar = vec.data();
-
+  uint32_t *cigar = ConsecutiveKmers::cigar_str_to_array("1I3M3I3M4D2M1D1I1M1I1D1M1I");
   size_t n_cigar = 13;
   std::vector<uint32_t> true_ref_positions = {0, 0, 1, 2, 3, 3, 3, 3, 4, 5, 10, 11, 13, 13, 14, 15};
   std::vector<uint32_t> read_positions____ = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
@@ -240,9 +238,7 @@ TEST_CASE("get_aligned_reference_positions with D at beginning and end")
   // reference   0 1 2 3       4 5 6 7 8 9 10 11 12 13    14    15 16 17
   //               | | |       | | |          |  |         |        |
   // read          0 1 2 3 4 5 6 7 8          9 10     11 12 13    14
-  std::vector<uint32_t> vec = ConsecutiveKmers::cigar_str_to_array("1D3M3I3M4D2M1D1I1M1I1D1M1D");
-  uint32_t *cigar = vec.data();
-
+  uint32_t *cigar = ConsecutiveKmers::cigar_str_to_array("1D3M3I3M4D2M1D1I1M1I1D1M1D");
   size_t n_cigar = 13;
   std::vector<uint32_t> true_ref_positions = {1, 2, 3, 4, 4, 4, 4, 5, 6, 11, 12, 14, 14, 15, 16};
   std::vector<uint32_t> read_positions____ = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14};
@@ -265,12 +261,30 @@ TEST_CASE("get_aligned_reference_positions with gaps")
   // reference   0 1 2 3       4 5 6 7 8 9 10 11 12 13    14    15 16 17
   //               | | |       | | |          |  |         |        |
   // read          0 1 2 3 4 5 6 7 8          9 10     11 12 13    14
-  std::vector<uint32_t> vec = ConsecutiveKmers::cigar_str_to_array("1D3M3I3M4D2M1D1I1M1I1D1M1D");
-  uint32_t *cigar = vec.data();
-
+  uint32_t *cigar = ConsecutiveKmers::cigar_str_to_array("1D3M3I3M4D2M1D1I1M1I1D1M1D");
   size_t n_cigar = 13;
   std::vector<uint32_t> true_ref_positions = {1, 2, 3, 4, 11, 12, 14, 14, 15, 16};
   std::vector<uint32_t> read_positions____ = {0, 1, 2, 3, 9, 10, 11, 12, 13, 14};
+  for (size_t i = 0; i < true_ref_positions.size(); i++)
+  {
+    true_ref_positions[i] = true_ref_positions[i] + ref_start;
+  }
+
+  // act
+  auto result = ConsecutiveKmers::get_aligned_reference_positions(ref_start, cigar, n_cigar, read_positions____);
+
+  // assert
+  check_cigar_output(result, true_ref_positions);
+}
+
+TEST_CASE("get_aligned_reference_positions only 2 positions")
+{
+  // arrange
+  uint32_t ref_start = 1000;
+  uint32_t *cigar = ConsecutiveKmers::cigar_str_to_array("4M");
+  size_t n_cigar = 13;
+  std::vector<uint32_t> true_ref_positions = {1, 3};
+  std::vector<uint32_t> read_positions____ = {1, 3};
   for (size_t i = 0; i < true_ref_positions.size(); i++)
   {
     true_ref_positions[i] = true_ref_positions[i] + ref_start;
@@ -287,8 +301,7 @@ TEST_CASE("get_aligned_reference_positions not in order in middle")
 {
   // arrange
   uint32_t ref_start = 1000;
-  std::vector<uint32_t> vec = ConsecutiveKmers::cigar_str_to_array("1D3M3I3M4D2M1D1I1M1I1D1M1D");
-  uint32_t *cigar = vec.data();
+  uint32_t *cigar = ConsecutiveKmers::cigar_str_to_array("1D3M3I3M4D2M1D1I1M1I1D1M1D");
   size_t n_cigar = 13;
   std::vector<uint32_t> read_positions = {0, 1, 2, 12, 9, 10, 11, 12, 15, 14};
 
@@ -300,15 +313,14 @@ TEST_CASE("get_aligned_reference_positions not in order in middle")
   }
   catch (const std::runtime_error &e)
   {
-    CHECK_EQ(std::string(e.what()), "[Error] read_positions are not sorted!");
+    CHECK(std::string(e.what()).find("[Error] read_positions are not sorted!") == 0);
   }
 }
 TEST_CASE("get_aligned_reference_positions not in order at very end")
 {
   // arrange
   uint32_t ref_start = 1000;
-  std::vector<uint32_t> vec = ConsecutiveKmers::cigar_str_to_array("1D3M3I3M4D2M1D1I1M1I1D1M1D");
-  uint32_t *cigar = vec.data();
+  uint32_t *cigar = ConsecutiveKmers::cigar_str_to_array("1D3M3I3M4D2M1D1I1M1I1D1M1D");
   size_t n_cigar = 13;
   std::vector<uint32_t> read_positions = {0, 1, 2, 3, 9, 10, 11, 12, 15, 14};
 
@@ -320,19 +332,37 @@ TEST_CASE("get_aligned_reference_positions not in order at very end")
   }
   catch (const std::runtime_error &e)
   {
-    CHECK_EQ(std::string(e.what()), "[Error] read_positions are not sorted!");
+    CHECK(std::string(e.what()).find("[Error] read_positions are not sorted!") == 0);
   }
 }
 
 // TODO what is returned if read_pos is not in the cigar string?
 
+TEST_CASE("get_aligned_reference_positions requested position not in cigar string")
+{
+  // arrange
+  uint32_t ref_start = 1000;
+  uint32_t *cigar = ConsecutiveKmers::cigar_str_to_array("10M");
+  size_t n_cigar = 1;
+  std::vector<uint32_t> read_positions = {0, 1, 2, 11};
+
+  // act & assert
+  CHECK_THROWS(ConsecutiveKmers::get_aligned_reference_positions(ref_start, cigar, n_cigar, read_positions));
+  try
+  {
+    auto result = ConsecutiveKmers::get_aligned_reference_positions(ref_start, cigar, n_cigar, read_positions);
+  }
+  catch (const std::runtime_error &e)
+  {
+    CHECK(std::string(e.what()).find("[Error] query index is not covered by CIGAR string!") == 0);
+  }
+}
 
 TEST_CASE("get_aligned_reference_positions not in order at beginning")
 {
   // arrange
   uint32_t ref_start = 1000;
-  std::vector<uint32_t> vec = ConsecutiveKmers::cigar_str_to_array("1D3M3I3M4D2M1D1I1M1I1D1M1D");
-  uint32_t *cigar = vec.data();
+  uint32_t *cigar = ConsecutiveKmers::cigar_str_to_array("1D3M3I3M4D2M1D1I1M1I1D1M1D");
   size_t n_cigar = 13;
   std::vector<uint32_t> read_positions = {1, 0, 2, 15, 9, 10, 11, 12, 15, 14};
 
@@ -344,7 +374,7 @@ TEST_CASE("get_aligned_reference_positions not in order at beginning")
   }
   catch (const std::runtime_error &e)
   {
-    CHECK_EQ(std::string(e.what()), "[Error] read_positions are not sorted!");
+    CHECK(std::string(e.what()).find("[Error] read_positions are not sorted!") == 0);
   }
 }
 
@@ -353,73 +383,134 @@ TEST_CASE("get_aligned_reference_positions with 2 consecutive I, is this possibl
 }
 
 // TODO, these need to be updated to the new output format, which must still be decided
-// TEST_CASE("get_repeat_coordinates: with reverse complement")
-// {
-//   // arrange
-//   Args args;
-//   ConsecutiveKmers ck(args);
-//   std::string seq = "GATGATCGTGTTGTTGTTGATCCCCCC";
-//   std::string seq_name = "seq1";
-//   std::ostringstream string_stream;
+TEST_CASE("write_repeat_coordinates: with reverse complement")
+{
+  // arrange
+  Args args;
+  ConsecutiveKmers ck(args);
+  std::string seq_name = "seq1";
+  std::string seq = "GATGATCGTGTTGTTGTTGATCCCCCC";
+  std::ostringstream string_stream;
+  std::string chrom = "chr1";
+  uint32_t start = 100;
 
-//   // act
-//   ck.get_repeat_coordinates(seq_name, seq, string_stream, true);
-//   std::string output_string = string_stream.str();
+  uint32_t *cigar_array = ConsecutiveKmers::cigar_str_to_array("27M");
+  uint32_t n_cigar = 1;
+  bool reverse_complement = true;
 
-//   // assert
-//   CHECK(output_string == "seq1\t0\t5\tATC\nseq1\t8\t18\tAAC\nseq1\t21\t26\tCCC\n");
-// }
+  // act
+  ck.write_repeat_coordinates(seq_name,
+                              seq,
+                              string_stream,
+                              chrom,
+                              start,
+                              cigar_array,
+                              n_cigar,
+                              reverse_complement);
+  std::string output_string = string_stream.str();
 
-// TEST_CASE("get_repeat_coordinates: with reverse complement, no repeats at start or stop")
-// {
-//   // arrange
-//   Args args;
-//   ConsecutiveKmers ck(args);
-//   std::string seq = "CGATGATCGTGTTGTTGTTGATCCCCCCAA";
-//   std::string seq_name = "seq1";
-//   std::ostringstream string_stream;
+  // assert
+  std::string result = "seq1\tchr1\t0\t5\t100\t105\tATC\n";
+  result += "seq1\tchr1\t8\t18\t108\t118\tAAC\n";
+  result += "seq1\tchr1\t21\t26\t121\t126\tCCC\n";
+  CHECK(output_string == result);
+}
 
-//   // act
-//   ck.get_repeat_coordinates(seq_name, seq, string_stream, true);
-//   std::string output_string = string_stream.str();
+TEST_CASE("write_repeat_coordinates: with reverse complement, no repeats at start or stop")
+{
+  // arrange
+  Args args;
+  ConsecutiveKmers ck(args);
+  std::string seq_name = "seq1";
+  std::string seq = "CGATGATCGTGTTGTTGTTGATCCCCCCAA";
+  std::ostringstream string_stream;
+  std::string chrom = "chr1";
+  uint32_t start = 100;
+  uint32_t *cigar_array = ConsecutiveKmers::cigar_str_to_array("22M3I5M");
+  uint32_t n_cigar = 3;
+  bool reverse_complement = true;
 
-//   // assert
-//   CHECK(output_string == "seq1\t1\t6\tATC\nseq1\t9\t19\tAAC\nseq1\t22\t27\tCCC\n");
-// }
+  // act
+  ck.write_repeat_coordinates(seq_name,
+                              seq,
+                              string_stream,
+                              chrom,
+                              start,
+                              cigar_array,
+                              n_cigar,
+                              reverse_complement);
+  std::string output_string = string_stream.str();
 
-// TEST_CASE("get_repeat_coordinates: without reverse complement")
-// {
-//   // arrange
-//   Args args;
-//   ConsecutiveKmers ck(args);
-//   std::string seq = "GATGATCGTGTTGTTGTTGATCCCCCC";
-//   std::string seq_name = "seq1";
-//   std::ostringstream string_stream;
+  // assert
+  std::string result = "seq1\tchr1\t1\t6\t101\t106\tATC\n";
+  result += "seq1\tchr1\t9\t19\t109\t119\tAAC\n";
+  result += "seq1\tchr1\t22\t27\t122\t124\tCCC\n";
+  CHECK(output_string == result);
+}
 
-//   // act
-//   ck.get_repeat_coordinates(seq_name, seq, string_stream, false);
-//   std::string output_string = string_stream.str();
+TEST_CASE("write_repeat_coordinates: without reverse complement")
+{
+  // arrange
+  Args args;
+  ConsecutiveKmers ck(args);
+  std::string seq_name = "seq1";
+  std::string seq = "GATGATCGTGTTGTTGTTGATCCCCCC";
+  std::ostringstream string_stream;
+  std::string chrom = "chr1";
+  uint32_t start = 100;
+  uint32_t *cigar_array = ConsecutiveKmers::cigar_str_to_array("27M");
+  uint32_t n_cigar = 1;
+  bool reverse_complement = false;
 
-//   // assert
-//   CHECK(output_string == "seq1\t0\t5\tATG\nseq1\t8\t18\tGTT\nseq1\t21\t26\tCCC\n");
-// }
+  // act
+  ck.write_repeat_coordinates(seq_name,
+                              seq,
+                              string_stream,
+                              chrom,
+                              start,
+                              cigar_array,
+                              n_cigar,
+                              reverse_complement);
+  std::string output_string = string_stream.str();
 
-// TEST_CASE("get_repeat_coordinates: without reverse complement, no repeats at start or stop")
-// {
-//   // arrange
-//   Args args;
-//   ConsecutiveKmers ck(args);
-//   std::string seq = "CGATGATCGTGTTGTTGTTGATCCCCCCAA";
-//   std::string seq_name = "seq1";
-//   std::ostringstream string_stream;
+  // assert
+  std::string result = "seq1\tchr1\t0\t5\t100\t105\tATG\n";
+  result += "seq1\tchr1\t8\t18\t108\t118\tGTT\n";
+  result += "seq1\tchr1\t21\t26\t121\t126\tCCC\n";
+  CHECK(output_string == result);
+}
 
-//   // act
-//   ck.get_repeat_coordinates(seq_name, seq, string_stream, false);
-//   std::string output_string = string_stream.str();
+TEST_CASE("write_repeat_coordinates: without reverse complement, no repeats at start or stop")
+{
+  // arrange
+  Args args;
+  ConsecutiveKmers ck(args);
+  std::string seq_name = "seq1";
+  std::string seq = "CGATGATCGTGTTGTTGTTGATCCCCCCAA";
+  std::ostringstream string_stream;
+  std::string chrom = "chr1";
+  uint32_t start = 100;
+  uint32_t *cigar_array = ConsecutiveKmers::cigar_str_to_array("30M");
+  uint32_t n_cigar = 1;
+  bool reverse_complement = false;
 
-//   // assert
-//   CHECK(output_string == "seq1\t1\t6\tATG\nseq1\t9\t19\tGTT\nseq1\t22\t27\tCCC\n");
-// }
+  // act
+  ck.write_repeat_coordinates(seq_name,
+                              seq,
+                              string_stream,
+                              chrom,
+                              start,
+                              cigar_array,
+                              n_cigar,
+                              reverse_complement);
+  std::string output_string = string_stream.str();
+
+  // assert
+  std::string result = "seq1\tchr1\t1\t6\t101\t106\tATG\n";
+  result += "seq1\tchr1\t9\t19\t109\t119\tGTT\n";
+  result += "seq1\tchr1\t22\t27\t122\t127\tCCC\n";
+  CHECK(output_string == result);
+}
 
 TEST_CASE("get_atomic_pattern: with reverse complement")
 {

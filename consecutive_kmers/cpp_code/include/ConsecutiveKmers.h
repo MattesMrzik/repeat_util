@@ -27,11 +27,13 @@ public:
 
   void init_atomic_patterns();
 
-  static std::vector<uint32_t> cigar_str_to_array(const std::string &cigarString);
+  static std::vector<uint32_t> cigar_str_to_vector(const std::string &cigarString);
 
-  static std::string cigar_array_to_str(const std::vector<uint32_t> &cigarArray);
+  static uint32_t *cigar_str_to_array(const std::string &cigarString);
 
-  static std::string cigarToString(const uint32_t *cigar, int numCigarOps);
+  static std::string cigar_array_to_str(const uint32_t *cigar, int numCigarOps);
+
+  static std::string cigar_vector_to_str(const std::vector<uint32_t> &cigarArray);
 
   static std::vector<uint32_t> get_aligned_reference_positions(bam1_t *read,
                                                                const std::vector<uint32_t> &readPositions);
@@ -48,8 +50,9 @@ public:
                                 const std::string &seq,
                                 OutputStream &outfile,
                                 const std::string &chrom,
-                                int position,
-                                const std::string &cigar,
+                                uint32_t seq_position,
+                                uint32_t *cigar_array,
+                                const uint32_t n_cigar,
                                 bool reverse_complement = false);
 
   /// @brief expands a string that contains collapsed repeats. For example, (GAT)_3 becomes GATGATGAT.

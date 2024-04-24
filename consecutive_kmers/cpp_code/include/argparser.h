@@ -29,5 +29,7 @@ struct Args
 void printHelp(const char *programName);
 Args parseArgs(int argc, char *argv[]);
 Args parseArgs(int argc, char *argv[], bool quiet);
+void to_file(Args args, std::string file_name);
+std::string get_time_and_date();
 
 #endif // ARGSPARSER_H

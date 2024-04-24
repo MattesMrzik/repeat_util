@@ -82,7 +82,8 @@
     "__debug": "cpp",
     "__string": "cpp",
     "ios": "cpp",
-    "version": "cpp"
+    "version": "cpp",
+    "__functional_base": "cpp"
   },
   "cSpell.words": [
     "ARGSPARSER",

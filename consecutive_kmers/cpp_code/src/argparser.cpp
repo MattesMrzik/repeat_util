@@ -1,6 +1,7 @@
 #include "argparser.h"
 #include <cstdlib> // For atoi function
 #include <iostream>
+#include <fstream>
 #include <filesystem>
 
 void printHelp(const char *programName)
@@ -128,5 +129,52 @@ Args parseArgs(int argc, char *argv[], bool quiet)
       }
     }
   }
+
+  to_file(args, args.output_dir);
   return args;
+}
+
+std::string to_string(Args args)
+{
+  std::ostringstream string_stream;
+  string_stream << "Time and date: " << get_time_and_date() << "\n";
+  string_stream << "k: " << args.k << "\n";
+  string_stream << "threshold: " << args.threshold << "\n";
+  string_stream << "score: " << args.score << "\n";
+  string_stream << "max_seq_len: " << MAX_SEQ_LEN << "\n";
+  string_stream << "use_max_seq_len: " << args.use_max_seq_len << "\n";
+  string_stream << "verbose: " << args.verbose << "\n";
+  string_stream << "bam_output_as_coords: " << args.bam_output_as_coords << "\n";
+  string_stream << "use_reverse_complement_kmer_for_bam: " << args.use_reverse_complement_kmer_for_bam << "\n";
+  string_stream << "output_dir: " << args.output_dir << "\n";
+  string_stream << "root_path: " << args.root_path << "\n";
+  string_stream << "files: ";
+  for (auto file : args.files)
+  {
+    string_stream << file << ", ";
+  }
+  string_stream << "\n";
+
+  return string_stream.str();
+}
+
+std::string get_time_and_date()
+{
+  std::time_t now = std::time(nullptr);
+  std::tm *time_info = std::localtime(&now);
+  std::stringstream ss;
+  ss << std::put_time(time_info, "%Y-%m-%d_%H.%M.%S");
+  return ss.str();
+}
+
+void to_file(Args args, std::string output_dir)
+{
+  std::ofstream file;
+  std::filesystem::path output_file_path(output_dir);
+  output_file_path /= "log";
+  std::filesystem::create_directories(output_file_path);
+  output_file_path /= "args_log_" + get_time_and_date() + ".txt";
+  file.open(output_file_path);
+  file << to_string(args);
+  file.close();
 }
