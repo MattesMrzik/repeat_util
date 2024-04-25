@@ -30,9 +30,12 @@ Options:
                                        the score
   -v                       print verbose to stdout
   -i <file1> <file2> ...:  Input files
-  -c:                      Output coordinates if input is a BAM file
-  -r:                      Use reverse complement kmers for the repeats
-                           when producing a BAM file
+  -c:                      Output coordinates if input is a BAM file. If a repeat
+                           is found, its atomic pattern is written to the output.
+                           See also option -r to use reverse complement kmers in
+                           the determination of the the atomic pattern.
+  -r:                      Also use the reverse complement of the kmer in the
+                           determination of the atomic pattern.
   -o <output_dir>:         Output directory (default: ../out)
 )";
 }
