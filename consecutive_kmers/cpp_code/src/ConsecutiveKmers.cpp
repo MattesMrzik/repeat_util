@@ -292,6 +292,19 @@ std::string ConsecutiveKmers::cigar_array_to_str(const uint32_t *cigar, int numC
   return ss.str();
 }
 
+uint32_t ConsecutiveKmers::n_cigar_from_str(const std::string &cigar_string)
+{
+  uint32_t n_cigar = 0;
+  for (auto c : cigar_string)
+  {
+    if (c == 'M' || c == 'I' || c == 'D' || c == 'N' || c == 'S' || c == 'H' || c == 'P' || c == '=' || c == 'X')
+    {
+      n_cigar++;
+    }
+  }
+  return n_cigar;
+}
+
 std::string ConsecutiveKmers::cigar_vector_to_str(const std::vector<uint32_t> &cigarArray)
 {
   std::string cigarString;
@@ -536,7 +549,8 @@ void ConsecutiveKmers::write_repeat_coordinate(const std::string &seq_name,
   catch (const std::exception &e)
   {
     std::string msg(e.what());
-    throw std::runtime_error("[Error] Could not get aligned reference positions for " + seq_name + ":\n" + msg);
+    msg += "for sequence " + seq_name + ": " + seq + ".\n";
+    throw std::runtime_error( msg);
   }
 
   outfile << seq_name << '\t'
@@ -856,8 +870,13 @@ void ConsecutiveKmers::scan_bam(std::string filename)
     }
     if (args.bam_output_as_coords)
     {
-      // read is not mapped
+      // read is not aligned
       if (record->core.flag & 0x4)
+      {
+        continue;
+      }
+      // if read is secondary or supplementary
+      if (record->core.flag & 0x100 || record->core.flag & 0x800)
       {
         continue;
       }

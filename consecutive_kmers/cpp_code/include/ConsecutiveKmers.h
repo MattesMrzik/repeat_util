@@ -27,6 +27,8 @@ public:
 
   void init_atomic_patterns();
 
+  static uint32_t n_cigar_from_str(const std::string &cigarString);
+
   static std::vector<uint32_t> cigar_str_to_vector(const std::string &cigarString);
 
   static uint32_t *cigar_str_to_array(const std::string &cigarString);
