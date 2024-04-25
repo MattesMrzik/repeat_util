@@ -492,11 +492,73 @@ std::vector<uint32_t> ConsecutiveKmers::get_aligned_reference_positions(uint32_t
   }
   if (read_pos_idx < read_positions.size())
   {
-    std::string msg = "[Error] query index is not covered by CIGAR string!";
+    std::string msg = "[Error] query index is not covered by CIGAR string!\n";
+    msg += "Query index: " + std::to_string(read_positions[read_pos_idx]) + "\n";
+    if (n_cigar > 0)
+    {
+      msg += "CIGAR: " + cigar_array_to_str(cigar_array, n_cigar) + "\n";
+    }
+    else
+    {
+      msg += "CIGAR: empty\n";
+    }
     throw std::runtime_error(msg);
   }
   return aligned_ref_positions;
 }
+
+template <typename OutputStream>
+void ConsecutiveKmers::write_repeat_coordinate(const std::string &seq_name,
+                                               const std::string &seq,
+                                               OutputStream &outfile,
+                                               const std::string &chrom,
+                                               uint32_t found_repeat_start,
+                                               uint32_t end_pos,
+                                               const std::string &repeat,
+                                               uint32_t seq_position,
+                                               uint32_t *cigar_array,
+                                               size_t n_cigar,
+                                               bool reverse_complement)
+{
+  if (args.verbose)
+  {
+    std::cout << "[Verbose] "
+              << "Found repeat: " << repeat << " at position " << found_repeat_start << " to " << end_pos << std::endl;
+  }
+  std::vector<uint32_t> aligned_ref_positions;
+  try
+  {
+    aligned_ref_positions = get_aligned_reference_positions(seq_position,
+                                                            cigar_array,
+                                                            n_cigar,
+                                                            std::vector<uint32_t>{found_repeat_start, end_pos});
+  }
+  catch (const std::exception &e)
+  {
+    std::string msg(e.what());
+    throw std::runtime_error("[Error] Could not get aligned reference positions for " + seq_name + ":\n" + msg);
+  }
+
+  outfile << seq_name << '\t'
+          << chrom << '\t'
+          << found_repeat_start << '\t'
+          << end_pos << '\t'
+          << aligned_ref_positions[0] << '\t'
+          << aligned_ref_positions[1] << '\t'
+          << get_atomic_pattern(repeat, reverse_complement) << std::endl;
+}
+
+template void ConsecutiveKmers::write_repeat_coordinate(const std::string &seq_name,
+                                                        const std::string &seq,
+                                                        std::ostringstream &outfile,
+                                                        const std::string &chrom,
+                                                        uint32_t found_repeat_start,
+                                                        uint32_t end_pos,
+                                                        const std::string &repeat,
+                                                        uint32_t seq_position,
+                                                        uint32_t *cigar_array,
+                                                        size_t n_cigar,
+                                                        bool reverse_complement);
 
 template <typename OutputStream>
 void ConsecutiveKmers::write_repeat_coordinates(const std::string &seq_name,
@@ -525,10 +587,16 @@ void ConsecutiveKmers::write_repeat_coordinates(const std::string &seq_name,
     }
     return;
   }
+  if (args.verbose)
+  {
+    std::cout << "[Verbose] "
+              << "Processing " << seq_name
+              << ", seq: " << seq << "." << std::endl;
+  }
   char repeat[args.k];
   bool found_repeat = false;
   uint32_t found_repeat_start;
-  for (size_t i = 0; i < seq.length(); i++)
+  for (size_t i = 0; i < seq.length() - args.k - args.k + 1; i++)
   {
     if (found_repeat)
     {
@@ -539,21 +607,19 @@ void ConsecutiveKmers::write_repeat_coordinates(const std::string &seq_name,
         // or simply write it to a file,
         // TODO instead of calling get_aligned_reference_positions for every repeat separately
         // accumulate all repeat positions and call get_aligned_reference_positions only once
-        std::vector<uint32_t> aligned_ref_positions;
 
         uint32_t end_pos = i + args.k + args.k - 2;
-        aligned_ref_positions = get_aligned_reference_positions(seq_position,
-                                                                cigar_array,
-                                                                n_cigar,
-                                                                std::vector<uint32_t>{found_repeat_start, end_pos});
-        outfile << seq_name << '\t'
-                << chrom << '\t'
-                << found_repeat_start << '\t'
-                << end_pos << '\t'
-                << aligned_ref_positions[0] << '\t'
-                << aligned_ref_positions[1] << '\t'
-                << get_atomic_pattern(std::string(repeat, args.k), reverse_complement) << std::endl;
-
+        write_repeat_coordinate(seq_name,
+                                seq,
+                                outfile,
+                                chrom,
+                                found_repeat_start,
+                                end_pos,
+                                std::string(repeat, args.k),
+                                seq_position,
+                                cigar_array,
+                                n_cigar,
+                                reverse_complement);
         found_repeat = false;
         i = i + args.k + args.k - 2;
       }
@@ -584,11 +650,19 @@ void ConsecutiveKmers::write_repeat_coordinates(const std::string &seq_name,
       found_repeat = true;
     }
   }
-  if (found_repeat) // this is perhaps never called since std::string is always null terminated
+  if (found_repeat)
   {
-    // maybe also write output like above but with i replaced by seq.length()
-    std::cerr << "[Error] this is not implemented. Please message mattes@mrzik.de with error code tzdfvni09w3hosgd" << std::endl;
-    exit(1);
+    write_repeat_coordinate(seq_name,
+                            seq,
+                            outfile,
+                            chrom,
+                            found_repeat_start,
+                            static_cast<uint32_t>(seq.length() - 1),
+                            std::string(repeat, args.k),
+                            seq_position,
+                            cigar_array,
+                            n_cigar,
+                            reverse_complement);
   }
 }
 
@@ -779,6 +853,14 @@ void ConsecutiveKmers::scan_bam(std::string filename)
     if (count % 1000000 == 0)
     {
       std::cout << "Scanned " << count / 1000000 << " million sequences in file " << filename << std::endl;
+    }
+    if (args.bam_output_as_coords)
+    {
+      // read is not mapped
+      if (record->core.flag & 0x4)
+      {
+        continue;
+      }
     }
     std::string seq_name = bam_get_qname(record);
     if (args.verbose)

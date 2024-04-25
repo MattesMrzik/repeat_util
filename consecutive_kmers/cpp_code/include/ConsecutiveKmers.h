@@ -46,6 +46,19 @@ public:
   std::string get_atomic_pattern(const std::string &kmer, bool reverse_complement = false);
 
   template <typename OutputStream>
+  void write_repeat_coordinate(const std::string &seq_name,
+                               const std::string &seq,
+                               OutputStream &outfile,
+                               const std::string &chrom,
+                               uint32_t found_repeat_start,
+                               uint32_t end_pos,
+                               const std::string &repeat,
+                               uint32_t seq_position,
+                               uint32_t *cigar_array,
+                               size_t n_cigar,
+                               bool reverse_complement);
+
+  template <typename OutputStream>
   void write_repeat_coordinates(const std::string &seq_name,
                                 const std::string &seq,
                                 OutputStream &outfile,
