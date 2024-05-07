@@ -9,3 +9,5 @@ consecutive_kmers/old_out/*
 consecutive_kmers/cpp_code/src/main
 consecutive_kmers/cpp_code/out/*
 consecutive_kmers/the_old_out/*
+consecutive_kmers/cpp_code/consecutive_kemrs.simg
+.github/workflows/singularity_build.sh

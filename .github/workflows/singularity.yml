@@ -29,6 +29,20 @@ jobs:
     - name: Build C/C++ Project
       run: make -C consecutive_kmers/cpp_code
 
+    - name install GO
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y golang
+
+    - name Install Singularity
+      run: |
+        git clone --recurse-submodules https://github.com/sylabs/singularity.git
+        cd singularity
+        git checkout --recurse-submodules v4.1.2
+        ./mconfig
+        make -C builddir
+        sudo make -C builddir install
+
     - name: Build Singularity Container
       run: |
         sudo apt-get update
