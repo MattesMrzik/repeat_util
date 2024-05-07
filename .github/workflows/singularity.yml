@@ -29,12 +29,12 @@ jobs:
     - name: Build C/C++ Project
       run: make -C consecutive_kmers/cpp_code
 
-    - name install GO
+    - name: install GO
       run: |
         sudo apt-get update
         sudo apt-get install -y golang
 
-    - name Install Singularity
+    - name: Install Singularity
       run: |
         git clone --recurse-submodules https://github.com/sylabs/singularity.git
         cd singularity
