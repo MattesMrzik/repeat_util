@@ -37,6 +37,9 @@ jobs:
         echo 'export PATH=/usr/local/go/bin:${PATH}:${GOPATH}/bin' >> ~/.bashrc && \
         source ~/.bashrc
 
+    - name: Install seccomp headers
+      run: sudo apt-get install libseccomp-dev
+
     - name: Install Singularity
       run: |
         git clone --recurse-submodules https://github.com/sylabs/singularity.git
