@@ -68,8 +68,6 @@ jobs:
 
     - name: Build Singularity Container
       run: |
-        sudo apt-get update
-        sudo apt-get install -y singularity-container
         singularity build consecutive_kmers.sif .github/workflows/singularity.def
 
     - name: Archive Singularity Container
