@@ -1,0 +1,59 @@
+name: Nightly Build and Release
+
+# on:
+#   schedule:
+#     - cron: '0 0 * * *'  # Run every night at midnight
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Install htslib
+      run: sudo apt-get install libhts-dev
+
+    - name: Install SeqAn
+      run: sudo apt-get install libseqan2-dev
+
+    - name: Build C/C++ Project
+      run: make -C consecutive_kmers/cpp_code
+
+    - name: Build Singularity Container
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y singularity-container
+        singularity build consecutive_kmers.sif .github/workflows/singularity.def
+
+    - name: Archive Singularity Container
+      uses: actions/upload-artifact@v2
+      with:
+        name: singularity-container
+        path: consecutive_kmers.sif
+
+    - name: Get Date
+      id: date
+      run: echo "::set-output name=date::$(date +%Y-%m-%d)"
+
+    - name: Create Nightly Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: nightly-${{ steps.date.outputs.date }}
+        release_name: Nightly Build - ${{ steps.date.outputs.date }}
+        body: |
+          Nightly build created on ${{ steps.date.outputs.date }}.
+        draft: false
+        prerelease: true

@@ -38,3 +38,4 @@ make test
 
 ## TODO
 make input -d option for dir to scan for fasta, fastq, and bam files
+make output default dir to root dir ie the dir where it was executed from
