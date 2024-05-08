@@ -20,79 +20,77 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Install htslib
-      run: sudo apt-get install libhts-dev
+    # - name: Install htslib
+    #   run: sudo apt-get install libhts-dev
 
-    - name: Install SeqAn
-      run: sudo apt-get install libseqan2-dev
+    # - name: Install SeqAn
+    #   run: sudo apt-get install libseqan2-dev
 
-    - name: Build C/C++ Project
-      run: make -C consecutive_kmers/cpp_code
+    # - name: Build C/C++ Project
+    #   run: make -C consecutive_kmers/cpp_code
 
-    - name: Find executable
-      run: find . -name "main"
+    # - name: Install GO
+    #   run: |
+    #     wget https://go.dev/dl/go1.22.3.linux-arm64.tar.gz
+    #     sudo tar -C /usr/local -xzvf go1.22.3.linux-arm64.tar.gz
+    #     echo 'export GOPATH=${HOME}/go' >> ~/.bashrc && \
+    #     echo 'export PATH=/usr/local/go/bin:${PATH}:${GOPATH}/bin' >> ~/.bashrc && \
+    #     source ~/.bashrc
 
-    - name: Install GO
-      run: |
-        wget https://go.dev/dl/go1.22.3.linux-arm64.tar.gz
-        sudo tar -C /usr/local -xzvf go1.22.3.linux-arm64.tar.gz
-        echo 'export GOPATH=${HOME}/go' >> ~/.bashrc && \
-        echo 'export PATH=/usr/local/go/bin:${PATH}:${GOPATH}/bin' >> ~/.bashrc && \
-        source ~/.bashrc
+    # - name: Install Singularity Dependencies
+    #   run: |
+    #     sudo apt-get update
+    #     sudo apt-get install -y \
+    #     autoconf \
+    #     automake \
+    #     cryptsetup \
+    #     git \
+    #     libfuse-dev \
+    #     libglib2.0-dev \
+    #     libseccomp-dev \
+    #     libtool \
+    #     pkg-config \
+    #     runc \
+    #     squashfs-tools \
+    #     squashfs-tools-ng \
+    #     uidmap \
+    #     wget \
+    #     zlib1g-dev
 
-    - name: Install Singularity Dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-        autoconf \
-        automake \
-        cryptsetup \
-        git \
-        libfuse-dev \
-        libglib2.0-dev \
-        libseccomp-dev \
-        libtool \
-        pkg-config \
-        runc \
-        squashfs-tools \
-        squashfs-tools-ng \
-        uidmap \
-        wget \
-        zlib1g-dev
+    # - name: Install Singularity
+    #   run: |
+    #     git clone --recurse-submodules https://github.com/sylabs/singularity.git
+    #     cd singularity
+    #     git checkout --recurse-submodules v4.1.2
+    #     ./mconfig
+    #     make -C builddir
+    #     sudo make -C builddir install
 
-    - name: Install Singularity
-      run: |
-        git clone --recurse-submodules https://github.com/sylabs/singularity.git
-        cd singularity
-        git checkout --recurse-submodules v4.1.2
-        ./mconfig
-        make -C builddir
-        sudo make -C builddir install
+    # - name: Build Singularity Container
+    #   run: |
+    #     singularity version
+    #     sudo singularity build consecutive_kmers.sif .github/workflows/singularity.def
 
-    - name: Build Singularity Container
-      run: |
-        singularity version
-        sudo singularity build consecutive_kmers.sif .github/workflows/singularity.def
+    # - name: Archive Singularity Container
+    #   uses: actions/upload-artifact@v2
+    #   with:
+    #     name: singularity-container
+    #     path: consecutive_kmers.sif
 
-    - name: Archive Singularity Container
-      uses: actions/upload-artifact@v2
-      with:
-        name: singularity-container
-        path: consecutive_kmers.sif
+    # - name: Get Date
+    #   id: date
+    #   run: echo "date=$(date +%Y-%m-%d)" >> $GITHUB_OUTPUT
+    #   echo date=$(date)
 
-    - name: Get Date
-      id: date
-      run: echo "::set-output name=date::$(date +%Y-%m-%d)"
+    - name: Create test file
+        run: echo "test" > test.txt
 
-    - name: Create Nightly Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: nightly-${{ steps.date.outputs.date }}
-        release_name: Nightly Build - ${{ steps.date.outputs.date }}
-        body: |
-          Nightly build created on ${{ steps.date.outputs.date }}.
-        draft: false
-        prerelease: true
+    -name: Create Release
+      - uses: "marvinpinto/action-automatic-releases@latest"
+          with:
+            repo_token: "${{ secrets.GITHUB_TOKEN }}"
+            automatic_release_tag: "latest"
+            prerelease: true
+            title: "Development Build"
+            files: |
+              test.txt
