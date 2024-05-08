@@ -29,6 +29,9 @@ jobs:
     - name: Build C/C++ Project
       run: make -C consecutive_kmers/cpp_code
 
+    -name: Find executable
+      run: find . -name "main"
+
     - name: Install GO
       run: |
         wget https://go.dev/dl/go1.22.3.linux-arm64.tar.gz
