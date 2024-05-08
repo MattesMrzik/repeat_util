@@ -6,9 +6,8 @@ name: Nightly Build and Release
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    tags:
+      - '*'
 
 
 jobs:
@@ -18,7 +17,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     # - name: Install htslib
     #   run: sudo apt-get install libhts-dev
