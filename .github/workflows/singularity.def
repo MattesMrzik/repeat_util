@@ -5,10 +5,9 @@ From: ubuntu:latest
     apt-get update && apt-get install -y g++ libhts-dev zlib1g-dev
 
 %files
-    bin/main /usr/local/bin/main
-    bin/test /usr/local/bin/test
-    test/resources/ /usr/local/test/resources
-
+    consecutive_kmers/cpp_code/bin/main /usr/local/bin/main
+    consecutive_kmers/cpp_code/bin/test /usr/local/bin/test
+    consecutive_kmers/cpp_code/test/resources/ /usr/local/test/resources
 
 %test
     /usr/local/bin/main -h
