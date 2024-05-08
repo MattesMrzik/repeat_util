@@ -132,8 +132,10 @@ Args parseArgs(int argc, char *argv[], bool quiet)
       }
     }
   }
-
-  to_file(args, args.output_dir);
+  if (!quiet)
+  {
+    to_file(args, args.output_dir);
+  }
   return args;
 }
 
