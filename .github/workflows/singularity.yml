@@ -1,95 +1,75 @@
-name: Nightly Build and Release
-
-# on:
-#   schedule:
-#     - cron: '0 0 * * *'  # Run every night at midnight
+name: Release Singularity Container on tag v*
 
 on:
   push:
     tags:
-      - '*'
-
+      - 'v*'
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    # - name: Install htslib
-    #   run: sudo apt-get install libhts-dev
+    - name: Install htslib
+      run: sudo apt-get install libhts-dev
 
-    # - name: Install SeqAn
-    #   run: sudo apt-get install libseqan2-dev
+    - name: Install SeqAn
+      run: sudo apt-get install libseqan2-dev
 
-    # - name: Build C/C++ Project
-    #   run: make -C consecutive_kmers/cpp_code
+    - name: Build C/C++ Project
+      run: make -C consecutive_kmers/cpp_code
 
-    # - name: Install GO
-    #   run: |
-    #     wget https://go.dev/dl/go1.22.3.linux-arm64.tar.gz
-    #     sudo tar -C /usr/local -xzvf go1.22.3.linux-arm64.tar.gz
-    #     echo 'export GOPATH=${HOME}/go' >> ~/.bashrc && \
-    #     echo 'export PATH=/usr/local/go/bin:${PATH}:${GOPATH}/bin' >> ~/.bashrc && \
-    #     source ~/.bashrc
-
-    # - name: Install Singularity Dependencies
-    #   run: |
-    #     sudo apt-get update
-    #     sudo apt-get install -y \
-    #     autoconf \
-    #     automake \
-    #     cryptsetup \
-    #     git \
-    #     libfuse-dev \
-    #     libglib2.0-dev \
-    #     libseccomp-dev \
-    #     libtool \
-    #     pkg-config \
-    #     runc \
-    #     squashfs-tools \
-    #     squashfs-tools-ng \
-    #     uidmap \
-    #     wget \
-    #     zlib1g-dev
-
-    # - name: Install Singularity
-    #   run: |
-    #     git clone --recurse-submodules https://github.com/sylabs/singularity.git
-    #     cd singularity
-    #     git checkout --recurse-submodules v4.1.2
-    #     ./mconfig
-    #     make -C builddir
-    #     sudo make -C builddir install
-
-    # - name: Build Singularity Container
-    #   run: |
-    #     singularity version
-    #     sudo singularity build consecutive_kmers.sif .github/workflows/singularity.def
-
-    # - name: Archive Singularity Container
-    #   uses: actions/upload-artifact@v2
-    #   with:
-    #     name: singularity-container
-    #     path: consecutive_kmers.sif
-
-    # - name: Get Date
-    #   id: date
-    #   run: echo "date=$(date +%Y-%m-%d)" >> $GITHUB_OUTPUT
-    #   echo date=$(date)
-
-    - name: Create test file
+    - name: Install GO
       run: |
-        echo "asdf" > test.txt
-        cat test.txt
+        wget https://go.dev/dl/go1.22.3.linux-arm64.tar.gz
+        sudo tar -C /usr/local -xzvf go1.22.3.linux-arm64.tar.gz
+        echo 'export GOPATH=${HOME}/go' >> ~/.bashrc && \
+        echo 'export PATH=/usr/local/go/bin:${PATH}:${GOPATH}/bin' >> ~/.bashrc && \
+        source ~/.bashrc
+
+    - name: Install Singularity Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+        autoconf \
+        automake \
+        cryptsetup \
+        git \
+        libfuse-dev \
+        libglib2.0-dev \
+        libseccomp-dev \
+        libtool \
+        pkg-config \
+        runc \
+        squashfs-tools \
+        squashfs-tools-ng \
+        uidmap \
+        wget \
+        zlib1g-dev
+
+    - name: Install Singularity
+      run: |
+        git clone --recurse-submodules https://github.com/sylabs/singularity.git
+        cd singularity
+        git checkout --recurse-submodules v4.1.2
+        ./mconfig
+        make -C builddir
+        sudo make -C builddir install
+
+    - name: Build Singularity Container
+      run: |
+        singularity version
+        sudo singularity build consecutive_kmers.sif .github/workflows/singularity.def
 
     - name: Release
       uses: softprops/action-gh-release@v2
       if: startsWith(github.ref, 'refs/tags/')
       with:
-        # token: ${{ secrets.TOKEN }}
+        # add this in GitHub Secrets of the repository
+        token: ${{ secrets.TOKEN }}
+        # if not provided: Skip retry — your GitHub token/PAT does not have the required permission to create a release. Error: Resource not accessible by integration
         files: |
-          test.txt
+          consecutive_kmers.sif
