@@ -83,7 +83,8 @@ jobs:
     #   echo date=$(date)
 
     - name: Create test file
-        run: echo "test" > test.txt
+      run: |
+        touch test.txt
 
     - name: Create Release
       - uses: "marvinpinto/action-automatic-releases@latest"
